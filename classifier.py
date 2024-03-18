@@ -2,6 +2,7 @@ import pandas as pd
 import os
 from sktime.classification.kernel_based import RocketClassifier
 from sklearn.model_selection import train_test_split
+import sktime.datatypes as skdtypes
 
 def get_data_paths(folder_path):
   data_paths = {}
@@ -45,12 +46,34 @@ def load_data(file_path, typeOfData):
 trainingData = load_data("ProcessedData", "Training")
 # print(trainingData["Accel"][0][0])
 classifier = RocketClassifier(use_multivariate="yes")
+testData = load_data("ProcessedData", "Test")
 for entry in trainingData["Accel"]:
     features, targetVariable = entry
     X_train = features
+    print(X_train)
     y_train = targetVariable
     print(y_train)
-    classifier.fit(X_train, y_train)
+
+    # Split X_train DataFrame into a list of pandas DataFrames
+    X_train_list = [X_train.iloc[i:i+1] for i in range(len(X_train))]
+
+    # Run sktime's check_raise function to diagnose the input format issue
+    skdtypes.check_raise(X_train_list, "df-list")
+
+    # Fit the classifier with the training data
+    classifier.fit(X_train_list, y_train)
+
+for entry in testData["Accel"]:
+   features, targetVariable = entry
+   X_test = features
+
+   X_test_list = [X_test.iloc[i:i+1] for i in range(len(X_test))]
+   y_pred = classifier.predict(X_test_list)
+   print(y_pred)
+
+print("Classifier fit test: ", classifier.is_fitted)
+#y_pred = classifier.predict(testData["Accel"][0])
+
 # X_train = trainingData["Accel"][0]
 # y_train = trainingData["Accel"][1]
 
