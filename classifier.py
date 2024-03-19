@@ -43,25 +43,28 @@ def load_data(file_path, typeOfData):
     return trainingData
     
 
-trainingData = load_data("ProcessedData", "Training")
-# print(trainingData["Accel"][0][0])
 classifier = RocketClassifier(use_multivariate="yes")
+trainingData = load_data("ProcessedData", "Training")
 testData = load_data("ProcessedData", "Test")
+all_features_accel = []
+all_target_accel = []
 for entry in trainingData["Accel"]:
     features, targetVariable = entry
-    X_train = features
-    print(X_train)
-    y_train = targetVariable
-    print(y_train)
+    all_features_accel.append(features)
+    all_target_accel.append(targetVariable)
+# Combine features and target variables into separate DataFrames
+X_train_accel = pd.concat(all_features_accel, ignore_index=True)
+y_train_accel = pd.concat(all_target_accel, ignore_index=True)
+# Split X_train DataFrame into a list (optional, for some transformers in sktime)
+X_train_list_accel = [X_train_accel.iloc[i:i+1] for i in range(len(X_train_accel))]
 
-    # Split X_train DataFrame into a list of pandas DataFrames
-    X_train_list = [X_train.iloc[i:i+1] for i in range(len(X_train))]
-
-    # Run sktime's check_raise function to diagnose the input format issue
-    skdtypes.check_raise(X_train_list, "df-list")
-
-    # Fit the classifier with the training data
-    classifier.fit(X_train_list, y_train)
+# Run sktime's check_raise function to diagnose the input format issue
+print(skdtypes.check_raise(X_train_list_accel, "df-list"))
+# Fit the classifier with the combined training data
+print("IM HERE")
+classifier.fit(X_train_list_accel, y_train_accel)
+print("IM HERE")
+print("Classifier fit test: ", classifier.is_fitted)
 
 for entry in testData["Accel"]:
    features, targetVariable = entry
@@ -71,7 +74,6 @@ for entry in testData["Accel"]:
    y_pred = classifier.predict(X_test_list)
    print(y_pred)
 
-print("Classifier fit test: ", classifier.is_fitted)
 #y_pred = classifier.predict(testData["Accel"][0])
 
 # X_train = trainingData["Accel"][0]
