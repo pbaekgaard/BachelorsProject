@@ -1,9 +1,14 @@
 import pandas as pd
 import os
+from sklearn.model_selection import GridSearchCV
 from sktime.classification.kernel_based import RocketClassifier
 from sklearn.model_selection import train_test_split
 import sktime.datatypes as skdtypes
 import numpy as np
+from sktime.classification.hybrid import HIVECOTEV2
+from sklearn.metrics import classification_report
+
+SAMPLELEN = 600
 
 
 def get_data_paths(folder_path):
@@ -29,81 +34,77 @@ def split_file(file_path, file, typeOfData):
         os.path.abspath(os.path.join(dataPaths["Accel"][typeOfData], file))
     )
     features = dataFromFile[["Activity Label", "Timestamp", "x", "y", "z"]]
-    for i in range(0, len(features.index) // 100 * 100):
+    Y_train = []
+    X_train = []
+    for i in range(0, len(features.index) // 100 * 100, SAMPLELEN):
         previousLabel = ""
         x = []
         y = []
         z = []
-        for i in range(0, 100):
-            if previousLabel == "" or features.iloc[0][0] == previousLabel:
-                x.append(features.iloc[i][2])
-                y.append(features.iloc[i][3])
-                z.append(features.iloc[i][4])
-                previousLabel = features.iloc[i][0]
-            else:
-                break
-        testArray = np.array([[x, y, z]])
-        print(f"Label: {previousLabel}\n testArray")
+        for k in range(0, SAMPLELEN):
+            if (i + k) < len(features.index):
+                if previousLabel == "" or features.iloc[i + k][0] == previousLabel:
+                    x.append(features.iloc[i + k][2])
+                    y.append(features.iloc[i + k][3])
+                    z.append(features.iloc[i + k][4])
+                    previousLabel = features.iloc[i + k][0]
+                else:
+                    break
+        if len(x) == len(y) == len(z) == SAMPLELEN:
+            X_train.append([x, y, z])
+            Y_train.append(previousLabel)
+    Y_train = np.array(Y_train)
+    X_train = np.array(X_train)
+    # Reshape XTrain to be in numpy3D format
+    X_train = X_train.reshape(-1, 3, SAMPLELEN)
+    return X_train, Y_train
 
 
 def load_data(file_path, typeOfData):
-    # prepath = os.path.abspath(file_path)
-    # dataFileArray = [entry.path for entry in os.scandir(prepath) if entry.is_file()]
     dataPaths = get_data_paths(file_path)
     dataFileArrayAccel = os.listdir(dataPaths["Accel"][typeOfData])
-    dataFileArrayGyro = os.listdir(dataPaths["Gyro"][typeOfData])
-    TrainingAccel = []
-    TrainingGyro = []
-    split_file(file_path, "data_1607_accel_phone.csv", typeOfData)
+    XTrain_Combined = np.empty((0, 3, SAMPLELEN))
+    YTrain_Combined = []
     for filename in dataFileArrayAccel:
-        dataFromFile = load_data_from_file(
-            os.path.abspath(os.path.join(dataPaths["Accel"][typeOfData], filename))
-        )
-        features = dataFromFile[["Timestamp", "x", "y", "z"]]
-        targetVariable = dataFromFile["Activity Label"]
-        TrainingAccel.append((features, targetVariable))
-
-    for filename in dataFileArrayGyro:
-        dataFromFile = load_data_from_file(
-            os.path.abspath(os.path.join(dataPaths["Gyro"][typeOfData], filename))
-        )
-        features = dataFromFile[["x", "y", "z"]]
-        targetVariable = dataFromFile["Activity Label"]
-        TrainingGyro.append((features, targetVariable))
-
-    trainingData = {"Accel": TrainingAccel, "Gyro": TrainingGyro}
-    return trainingData
+        if filename.startswith(".~") == False:
+            XTrain, YTrain = split_file(file_path, filename, typeOfData)
+            XTrain_Combined = np.concatenate((XTrain_Combined, XTrain), axis=0)
+            YTrain_Combined.extend(YTrain)
+    XTrain_Combined = np.array(XTrain_Combined)
+    YTrain_Combined = np.array(YTrain_Combined)
+    return XTrain_Combined, YTrain_Combined
 
 
-classifier = RocketClassifier(use_multivariate="yes")
-trainingData = load_data("ProcessedData", "Training")
-# testData = load_data("ProcessedData", "Test")
-all_features_accel = []
-all_target_accel = []
-for entry in trainingData["Accel"]:
-    features, targetVariable = entry
-    all_features_accel.append(features)
-    all_target_accel.append(targetVariable)
-# Combine features and target variables into separate DataFrames
-X_train_accel = pd.concat(all_features_accel, ignore_index=True)
-y_train_accel = pd.concat(all_target_accel, ignore_index=True)
-# Split X_train DataFrame into a list (optional, for some transformers in sktime)
-X_train_list_accel = [X_train_accel.iloc[i : i + 1] for i in range(len(X_train_accel))]
+def load_data_test(file_path, typeOfData):
+    dataPaths = get_data_paths(file_path)
+    dataFileArrayAccel = os.listdir(dataPaths["Accel"][typeOfData])
+    XTrain_Combined = np.empty((0, 3, SAMPLELEN))
+    YTrain_Combined = []
+    for filename in dataFileArrayAccel:
+        if filename.startswith(".~") == False:
+            print(f"getting testdata from file: {filename}")
+            XTrain, YTrain = split_file(file_path, filename, typeOfData)
+            XTrain_Combined = np.concatenate((XTrain_Combined, XTrain), axis=0)
+            YTrain_Combined.extend(YTrain)
 
-# Run sktime's check_raise function to diagnose the input format issue
-classifier.fit(X_train_list_accel, y_train_accel)
+    XTrain_Combined = np.array(XTrain_Combined)
+    YTrain_Combined = np.array(YTrain_Combined)
+    return XTrain_Combined, YTrain_Combined
 
-for entry in testData["Accel"]:
-    features, targetVariable = entry
-    X_test = features
 
-    X_test_list = [X_test.iloc[i : i + 1] for i in range(len(X_test))]
-    y_pred = classifier.predict(X_test_list)
+classifier = HIVECOTEV2(
+    drcif_params={"n_estimators": 200},  # Set number of estimators for DrCIF
+    time_limit_in_minutes=4,  # Set a time limit of 2 minutes
+)
+XTrain, YTrain = load_data("ProcessedData", "Training")
+XTest, YTest = load_data_test("ProcessedData", "Test")
 
-# y_pred = classifier.predict(testData["Accel"][0])
+classifier.fit(XTrain, YTrain)
+print("running classifier.fit")
+y_pred = classifier.predict(XTest)
+y_predproba = classifier.predict_proba(XTest)
+print(y_pred)
+print(y_predproba)
 
-# X_train = trainingData["Accel"][0]
-# y_train = trainingData["Accel"][1]
-
-# classifier = RocketClassifier(use_multivariate="yes")
-# classifier.fit(X_train, y_train)
+report = classification_report(YTest, y_pred)
+print("Classification Report:\n", report)
