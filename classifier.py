@@ -1,14 +1,10 @@
 import pandas as pd
 import os
-from sklearn.model_selection import GridSearchCV
 from sktime.classification.kernel_based import RocketClassifier
-from sklearn.model_selection import train_test_split
-import sktime.datatypes as skdtypes
 import numpy as np
-from sktime.classification.hybrid import HIVECOTEV2
 from sklearn.metrics import classification_report
 
-SAMPLELEN = 600
+SAMPLELEN = 2000
 
 
 def get_data_paths(folder_path):
@@ -28,11 +24,12 @@ def load_data_from_file(file_path):
     return data
 
 
-def split_file(file_path, file, typeOfData):
+def split_file(file_path, file, typeOfData, device):
     dataPaths = get_data_paths(file_path)
     dataFromFile = load_data_from_file(
-        os.path.abspath(os.path.join(dataPaths["Accel"][typeOfData], file))
+        os.path.abspath(os.path.join(dataPaths[device][typeOfData], file))
     )
+
     features = dataFromFile[["Activity Label", "Timestamp", "x", "y", "z"]]
     Y_train = []
     X_train = []
@@ -57,54 +54,54 @@ def split_file(file_path, file, typeOfData):
     X_train = np.array(X_train)
     # Reshape XTrain to be in numpy3D format
     X_train = X_train.reshape(-1, 3, SAMPLELEN)
+
     return X_train, Y_train
 
 
 def load_data(file_path, typeOfData):
     dataPaths = get_data_paths(file_path)
     dataFileArrayAccel = os.listdir(dataPaths["Accel"][typeOfData])
-    XTrain_Combined = np.empty((0, 3, SAMPLELEN))
+    dataFileArrayGyro = os.listdir(dataPaths["Gyro"][typeOfData])
+    XTrain_Combined_Accel = np.empty((0, 3, SAMPLELEN))
+    XTrain_Combined_Gyro = np.empty((0, 3, SAMPLELEN))
     YTrain_Combined = []
     for filename in dataFileArrayAccel:
         if filename.startswith(".~") == False:
-            XTrain, YTrain = split_file(file_path, filename, typeOfData)
-            XTrain_Combined = np.concatenate((XTrain_Combined, XTrain), axis=0)
+            XTrain, YTrain = split_file(file_path, filename, typeOfData, "Accel")
+            XTrain_Combined_Accel = np.concatenate(
+                (XTrain_Combined_Accel, XTrain), axis=0
+            )
             YTrain_Combined.extend(YTrain)
-    XTrain_Combined = np.array(XTrain_Combined)
-    YTrain_Combined = np.array(YTrain_Combined)
-    return XTrain_Combined, YTrain_Combined
 
-
-def load_data_test(file_path, typeOfData):
-    dataPaths = get_data_paths(file_path)
-    dataFileArrayAccel = os.listdir(dataPaths["Accel"][typeOfData])
-    XTrain_Combined = np.empty((0, 3, SAMPLELEN))
-    YTrain_Combined = []
-    for filename in dataFileArrayAccel:
+    for filename in dataFileArrayGyro:
         if filename.startswith(".~") == False:
-            print(f"getting testdata from file: {filename}")
-            XTrain, YTrain = split_file(file_path, filename, typeOfData)
-            XTrain_Combined = np.concatenate((XTrain_Combined, XTrain), axis=0)
-            YTrain_Combined.extend(YTrain)
+            XTrainGyro, YTrainGyro = split_file(file_path, filename, typeOfData, "Gyro")
+            XTrain_Combined_Gyro = np.concatenate((XTrain_Combined_Gyro, XTrainGyro))
 
-    XTrain_Combined = np.array(XTrain_Combined)
-    YTrain_Combined = np.array(YTrain_Combined)
+    XTrain_Combined_Accel = np.array(XTrain_Combined_Accel)
+    XTrain_Combined_Gyro = np.array(XTrain_Combined_Gyro)
+    min_length = min(XTrain_Combined_Accel.shape[0], XTrain_Combined_Gyro.shape[0])
+
+    XTrain_Combined = np.concatenate(
+        (XTrain_Combined_Accel[:min_length], XTrain_Combined_Gyro[:min_length]), axis=1
+    )
+    YTrain_Combined = np.array(YTrain_Combined[:min_length])
     return XTrain_Combined, YTrain_Combined
 
 
-classifier = HIVECOTEV2(
-    drcif_params={"n_estimators": 200},  # Set number of estimators for DrCIF
-    time_limit_in_minutes=4,  # Set a time limit of 2 minutes
-)
+print("Loading data..\n")
 XTrain, YTrain = load_data("ProcessedData", "Training")
-XTest, YTest = load_data_test("ProcessedData", "Test")
+XTest, YTest = load_data("ProcessedData", "Test")
 
+classifier = RocketClassifier(rocket_transform="minirocket")
+
+print("Fitting Classifier..\n")
 classifier.fit(XTrain, YTrain)
-print("running classifier.fit")
+print("Running Prediction..\n")
 y_pred = classifier.predict(XTest)
 y_predproba = classifier.predict_proba(XTest)
-print(y_pred)
-print(y_predproba)
+print(f"guesses: \n {y_pred}")
+print(f"Actual: \n {YTest}")
 
 report = classification_report(YTest, y_pred)
 print("Classification Report:\n", report)
