@@ -3,8 +3,9 @@ import os
 from sktime.classification.kernel_based import RocketClassifier
 import numpy as np
 from sklearn.metrics import classification_report
-
-SAMPLELEN = 2000
+from sktime.classification.hybrid import HIVECOTEV2
+from sktime.classification.deep_learning.cnn import CNNClassifier
+SAMPLELEN = 900
 
 
 def get_data_paths(folder_path):
@@ -81,7 +82,6 @@ def load_data(file_path, typeOfData):
     XTrain_Combined_Accel = np.array(XTrain_Combined_Accel)
     XTrain_Combined_Gyro = np.array(XTrain_Combined_Gyro)
     min_length = min(XTrain_Combined_Accel.shape[0], XTrain_Combined_Gyro.shape[0])
-
     XTrain_Combined = np.concatenate(
         (XTrain_Combined_Accel[:min_length], XTrain_Combined_Gyro[:min_length]), axis=1
     )
@@ -90,18 +90,23 @@ def load_data(file_path, typeOfData):
 
 
 print("Loading data..\n")
-XTrain, YTrain = load_data("ProcessedData", "Training")
 XTest, YTest = load_data("ProcessedData", "Test")
 
-classifier = RocketClassifier(rocket_transform="minirocket")
+XTrain, YTrain = load_data("ProcessedData", "Training")
+
+classifier = CNNClassifier(n_epochs=50, verbose=True)
 
 print("Fitting Classifier..\n")
 classifier.fit(XTrain, YTrain)
+
 print("Running Prediction..\n")
 y_pred = classifier.predict(XTest)
 y_predproba = classifier.predict_proba(XTest)
 print(f"guesses: \n {y_pred}")
+print(f"Probabilities from guess: \n {y_predproba}")
 print(f"Actual: \n {YTest}")
 
 report = classification_report(YTest, y_pred)
 print("Classification Report:\n", report)
+
+classifier.save("./models/CNN")

@@ -27,7 +27,7 @@ def initDirectories():
 
 def readAndProcess(path, processedPath):
     dataFileArray = os.listdir(path)
-    classes = ["B", "C", "M"]
+    classes = ["B", "C", "M", "A"]
     column_index = 1
     index = 0
     for file in sorted(dataFileArray):
