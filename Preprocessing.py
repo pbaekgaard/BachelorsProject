@@ -1,9 +1,10 @@
-import os
 import pandas as pd
+import os
+from typing import List
 
-def initDirectories():
+def initDirectories(pathName : str):
     # Define the main directory path
-    processed_data_path = "./ProcessedData"
+    processed_data_path = pathName
     # Define subfolder names (list for reusability)
     subfolders = ["Accel", "Gyro"]
 
@@ -23,9 +24,10 @@ def initDirectories():
             subfolder_path = os.path.join(folder_path, subfolder)
             os.makedirs(subfolder_path, exist_ok=True)
 
-def readAndProcess(path, processedPath):
+
+def readAndProcess(path, processedPath, labels : List[str]):
     dataFileArray = os.listdir(path)
-    classes = ["B", "C", "M", "A"]
+    classes = labels
     column_index = 1
     index = 0
     for file in sorted(dataFileArray):
@@ -48,6 +50,7 @@ def readAndProcess(path, processedPath):
                 "y",
                 "z",
             ]
+            print(f"Processing file: {file}")
             if index < eightyPercent:
                 processedPathExtended = processedPath + "Training/"
                 f = open(
@@ -72,12 +75,14 @@ def readAndProcess(path, processedPath):
                 f.close()
             index += 1
 
+
 pathAccel = "./raw/phone/accel"
 pathGyro = "./raw/phone/gyro"
-processedPathAccel = "./ProcessedData/Accel/"
-processedPathGyro = "./ProcessedData/Gyro/"
 
-initDirectories()
+def Process(labels : List[str], pathName : str):
+    initDirectories(pathName)
+    readAndProcess(pathAccel, pathName + "/Accel/", labels)
+    readAndProcess(pathGyro, pathName + "/Gyro/", labels)
 
-readAndProcess(pathAccel, processedPathAccel)
-readAndProcess(pathGyro, processedPathGyro)
+Process(labels=['B', 'C', 'M'], pathName="./ProcessedData")
+Process(labels=['A'], pathName="./newData")

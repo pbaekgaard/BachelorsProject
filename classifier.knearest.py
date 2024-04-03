@@ -91,7 +91,7 @@ def fitFirst():
 
     XTrain, YTrain = load_data("ProcessedData", "Training")
 
-    classifier = KNeighborsTimeSeriesClassifier(n_neighbors=3)
+    classifier = KNeighborsTimeSeriesClassifier(n_neighbors=5, algorithm="ball_tree", distance="euclidean", pass_train_distances=True)
 
     print("Fitting Classifier..\n")
     classifier.fit(XTrain, YTrain)
@@ -99,7 +99,6 @@ def fitFirst():
     print("Running Prediction..\n")
     y_pred = classifier.predict(XTest)
     y_predproba = classifier.predict_proba(XTest)
-    print(f"guesses: \n {y_pred}")
     print(f"Probabilities from guess: \n {y_predproba}")
     print(f"Actual: \n {YTest}")
 
@@ -110,8 +109,8 @@ def fitFirst():
 
 def refit(modelPath : str):
     print("Loading new data..\n")
-    XTest, YTest = load_data("NewData", "Test")
-    XTrain, YTrain = load_data("NewData", "Training")
+    XTest, YTest = load_data("newData", "Test")
+    XTrain, YTrain = load_data("newData", "Training")
 
     classifier = KNeighborsTimeSeriesClassifier.load_from_path(modelPath)
 
@@ -128,7 +127,7 @@ def refit(modelPath : str):
     report = classification_report(YTest, y_pred)
     print("Classification Report:\n", report)
 
-    classifier.save("./models/KN")
+    classifier.save("./models/KN_retrained")
 
 fitFirst()
 
