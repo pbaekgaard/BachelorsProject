@@ -125,8 +125,8 @@ def readAndProcessversion2(path, processedPath):
             index += 1
 
 
-pathAccel = "../raw/phone/accel"
-pathGyro = "../raw/phone/gyro"
+pathAccel = "./raw/phone/accel"
+pathGyro = "./raw/phone/gyro"
 processedPathAccel = "../ProcessedData/Accel/"
 processedPathGyro = "../ProcessedData/Gyro/"
 
