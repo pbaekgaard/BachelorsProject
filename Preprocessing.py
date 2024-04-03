@@ -27,21 +27,21 @@ def initDirectories():
 
 def readAndProcess(path, processedPath, labels : List[str]):
     dataFileArray = os.listdir(path)
-    dataFileArray.pop(0)
-    dataFileArray.pop(0)
     classes = labels
     column_index = 1
     index = 0
-    for file in dataFileArray:
+    for file in sorted(dataFileArray):
         file_path = os.path.join(path, file)
+        print(file)
         if ".DS_Store" not in file_path:
             df = pd.read_csv(file_path, header=None, sep=",", encoding="ISO-8859-1")
             filtered_df = df[df.iloc[:, column_index].isin(classes)]
             eightyPercent = (len(dataFileArray) / 100) * 80
             fifteenPercent = (len(dataFileArray) / 100) * 15
             # The following limits the number of rows to every (rowFrequency) number of rows
-            rowFrequency = 5
-            limited_df = filtered_df.iloc[::rowFrequency]
+            # rowFrequency = 5
+            # limited_df = filtered_df.iloc[::rowFrequency]
+            limited_df = filtered_df
             limited_df.columns = [
                 "Subject-id",
                 "Activity Label",
