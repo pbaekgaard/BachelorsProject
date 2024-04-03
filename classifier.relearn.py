@@ -85,51 +85,24 @@ def load_data(file_path, typeOfData):
     YTrain_Combined = np.array(YTrain_Combined[:min_length])
     return XTrain_Combined, YTrain_Combined
 
-def fitFirst():
-    print("Loading data..\n")
-    XTest, YTest = load_data("ProcessedData", "Test")
+print("Loading data..\n")
+XTest, YTest = load_data("ProcessedData", "Test")
 
-    XTrain, YTrain = load_data("ProcessedData", "Training")
+XTrain, YTrain = load_data("ProcessedData", "Training")
 
-    classifier = KNeighborsTimeSeriesClassifier(n_neighbors=3)
+classifier = KNeighborsTimeSeriesClassifier(n_neighbors=3)
 
-    print("Fitting Classifier..\n")
-    classifier.fit(XTrain, YTrain)
+print("Fitting Classifier..\n")
+classifier.fit(XTrain, YTrain)
 
-    print("Running Prediction..\n")
-    y_pred = classifier.predict(XTest)
-    y_predproba = classifier.predict_proba(XTest)
-    print(f"guesses: \n {y_pred}")
-    print(f"Probabilities from guess: \n {y_predproba}")
-    print(f"Actual: \n {YTest}")
+print("Running Prediction..\n")
+y_pred = classifier.predict(XTest)
+y_predproba = classifier.predict_proba(XTest)
+print(f"guesses: \n {y_pred}")
+print(f"Probabilities from guess: \n {y_predproba}")
+print(f"Actual: \n {YTest}")
 
-    report = classification_report(YTest, y_pred)
-    print("Classification Report:\n", report)
+report = classification_report(YTest, y_pred)
+print("Classification Report:\n", report)
 
-    classifier.save("./models/KN")
-
-def refit(modelPath : str):
-    print("Loading new data..\n")
-    XTest, YTest = load_data("NewData", "Test")
-    XTrain, YTrain = load_data("NewData", "Training")
-
-    classifier = KNeighborsTimeSeriesClassifier.load_from_path(modelPath)
-
-    print("Fitting Classifier..\n")
-    classifier.fit(XTrain, YTrain)
-
-    print("Running Predictions..\n")
-    y_pred = classifier.predict(XTest)
-    y_predproba = classifier.predict_proba(XTest)
-    print(f"guesses: \n {y_pred}")
-    print(f"Probabilities from guess: \n {y_predproba}")
-    print(f"Actual: \n {YTest}")
-
-    report = classification_report(YTest, y_pred)
-    print("Classification Report:\n", report)
-
-    classifier.save("./models/KN")
-
-fitFirst()
-
-refit("models/KN.zip")
+classifier.save("./models/KN")
