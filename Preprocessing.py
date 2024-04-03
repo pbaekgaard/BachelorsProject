@@ -1,6 +1,6 @@
 import pandas as pd
 import os
-
+from typing import List
 
 def initDirectories():
     # Define the main directory path
@@ -25,9 +25,9 @@ def initDirectories():
             os.makedirs(subfolder_path, exist_ok=True)
 
 
-def readAndProcess(path, processedPath):
+def readAndProcess(path, processedPath, labels : List[str]):
     dataFileArray = os.listdir(path)
-    classes = ["B", "C", "M", "A"]
+    classes = labels
     column_index = 1
     index = 0
     for file in sorted(dataFileArray):
@@ -50,6 +50,7 @@ def readAndProcess(path, processedPath):
                 "y",
                 "z",
             ]
+            print(f"Processing file: {file}")
             if index < eightyPercent:
                 processedPathExtended = processedPath + "Training/"
                 f = open(
@@ -81,6 +82,8 @@ processedPathAccel = "./ProcessedData/Accel/"
 processedPathGyro = "./ProcessedData/Gyro/"
 
 initDirectories()
+def Process(labels : List[str]):
+    readAndProcess(pathAccel, processedPathAccel, labels)
+    readAndProcess(pathGyro, processedPathGyro, labels)
 
-readAndProcess(pathAccel, processedPathAccel)
-readAndProcess(pathGyro, processedPathGyro)
+Process(['B', 'C', 'M'])
