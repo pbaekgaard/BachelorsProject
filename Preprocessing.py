@@ -1,6 +1,5 @@
-import pandas as pd
 import os
-
+import pandas as pd
 
 def initDirectories():
     # Define the main directory path
@@ -23,7 +22,6 @@ def initDirectories():
         for subfolder in subsubfolders:
             subfolder_path = os.path.join(folder_path, subfolder)
             os.makedirs(subfolder_path, exist_ok=True)
-
 
 def readAndProcess(path, processedPath):
     dataFileArray = os.listdir(path)
@@ -73,7 +71,6 @@ def readAndProcess(path, processedPath):
                 f.write(limited_df.to_csv(sep=",", index=False).replace(";", ""))
                 f.close()
             index += 1
-
 
 pathAccel = "./raw/phone/accel"
 pathGyro = "./raw/phone/gyro"
