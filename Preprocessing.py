@@ -2,9 +2,9 @@ import pandas as pd
 import os
 from typing import List
 
-def initDirectories():
+def initDirectories(pathName : str):
     # Define the main directory path
-    processed_data_path = "./ProcessedData"
+    processed_data_path = pathName
     # Define subfolder names (list for reusability)
     subfolders = ["Accel", "Gyro"]
 
@@ -78,12 +78,11 @@ def readAndProcess(path, processedPath, labels : List[str]):
 
 pathAccel = "./raw/phone/accel"
 pathGyro = "./raw/phone/gyro"
-processedPathAccel = "./ProcessedData/Accel/"
-processedPathGyro = "./ProcessedData/Gyro/"
 
-initDirectories()
-def Process(labels : List[str]):
-    readAndProcess(pathAccel, processedPathAccel, labels)
-    readAndProcess(pathGyro, processedPathGyro, labels)
+def Process(labels : List[str], pathName : str):
+    initDirectories(pathName)
+    readAndProcess(pathAccel, pathName + "/Accel/", labels)
+    readAndProcess(pathGyro, pathName + "/Gyro/", labels)
 
-Process(['B', 'C', 'M'])
+Process(labels=['B', 'C', 'M'], pathName="./ProcessedData")
+Process(labels=['A'], pathName="./newData")

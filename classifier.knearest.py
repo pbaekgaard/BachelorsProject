@@ -1,13 +1,12 @@
-import pandas as pd
 import os
-from sktime.classification.kernel_based import RocketClassifier
 import numpy as np
+import pandas as pd
 from sklearn.metrics import classification_report
 from sktime.classification.hybrid import HIVECOTEV2
+from sktime.classification.kernel_based import RocketClassifier
 from sktime.classification.deep_learning.cnn import CNNClassifier
 from sktime.classification.distance_based import KNeighborsTimeSeriesClassifier
 SAMPLELEN = 900
-
 
 def get_data_paths(folder_path):
     data_paths = {}
@@ -20,11 +19,9 @@ def get_data_paths(folder_path):
         }
     return data_paths
 
-
 def load_data_from_file(file_path):
     data = pd.read_csv(file_path)
     return data
-
 
 def split_file(file_path, file, typeOfData, device):
     dataPaths = get_data_paths(file_path)
@@ -59,7 +56,6 @@ def split_file(file_path, file, typeOfData, device):
 
     return X_train, Y_train
 
-
 def load_data(file_path, typeOfData):
     dataPaths = get_data_paths(file_path)
     dataFileArrayAccel = os.listdir(dataPaths["Accel"][typeOfData])
@@ -89,25 +85,50 @@ def load_data(file_path, typeOfData):
     YTrain_Combined = np.array(YTrain_Combined[:min_length])
     return XTrain_Combined, YTrain_Combined
 
+def fitFirst():
+    print("Loading data..\n")
+    XTest, YTest = load_data("ProcessedData", "Test")
 
-print("Loading data..\n")
-XTest, YTest = load_data("ProcessedData", "Test")
+    XTrain, YTrain = load_data("ProcessedData", "Training")
 
-XTrain, YTrain = load_data("ProcessedData", "Training")
+    classifier = KNeighborsTimeSeriesClassifier(n_neighbors=5, algorithm="ball_tree", distance="euclidean", pass_train_distances=True)
 
-classifier = KNeighborsTimeSeriesClassifier(n_neighbors=3)
+    print("Fitting Classifier..\n")
+    classifier.fit(XTrain, YTrain)
 
-print("Fitting Classifier..\n")
-classifier.fit(XTrain, YTrain)
+    print("Running Prediction..\n")
+    y_pred = classifier.predict(XTest)
+    y_predproba = classifier.predict_proba(XTest)
+    print(f"Probabilities from guess: \n {y_predproba}")
+    print(f"Actual: \n {YTest}")
 
-print("Running Prediction..\n")
-y_pred = classifier.predict(XTest)
-y_predproba = classifier.predict_proba(XTest)
-print(f"guesses: \n {y_pred}")
-print(f"Probabilities from guess: \n {y_predproba}")
-print(f"Actual: \n {YTest}")
+    report = classification_report(YTest, y_pred)
+    print("Classification Report:\n", report)
 
-report = classification_report(YTest, y_pred)
-print("Classification Report:\n", report)
+    classifier.save("./models/KN")
 
-classifier.save("./models/CNN")
+def refit(modelPath : str):
+    print("Loading new data..\n")
+    XTest, YTest = load_data("newData", "Test")
+    XTrain, YTrain = load_data("newData", "Training")
+
+    classifier = KNeighborsTimeSeriesClassifier.load_from_path(modelPath)
+
+    print("Fitting Classifier..\n")
+    classifier.fit(XTrain, YTrain)
+
+    print("Running Predictions..\n")
+    y_pred = classifier.predict(XTest)
+    y_predproba = classifier.predict_proba(XTest)
+    print(f"guesses: \n {y_pred}")
+    print(f"Probabilities from guess: \n {y_predproba}")
+    print(f"Actual: \n {YTest}")
+
+    report = classification_report(YTest, y_pred)
+    print("Classification Report:\n", report)
+
+    classifier.save("./models/KN_retrained")
+
+fitFirst()
+
+refit("models/KN.zip")
