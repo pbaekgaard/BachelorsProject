@@ -1,107 +1,114 @@
-import os
-import numpy as np
 import pandas as pd
-from sklearn.metrics import classification_report
-from sktime.classification.hybrid import HIVECOTEV2
+import numpy as np
+import os
 from sktime.classification.kernel_based import RocketClassifier
-from sktime.classification.deep_learning.cnn import CNNClassifier
-SAMPLELEN = 900
+from sklearn.metrics import classification_report
 
-def get_data_paths(folder_path):
-    data_paths = {}
-    for sensor in ["Accel", "Gyro"]:
-        sensor_path = f"{folder_path}/{sensor}"
-        data_paths[sensor] = {
-            "Training": f"{sensor_path}/Training/",
-            "Validation": f"{sensor_path}/Validation/",
-            "Test": f"{sensor_path}/Test/",
-        }
-    return data_paths
 
-def load_data_from_file(file_path):
-    data = pd.read_csv(file_path)
-    return data
+def make_dataframes(folder: str, type: str):
+    # Path to the ProcessedData folder
+    base_path = folder
+    folder_path = os.path.join(base_path, type)
 
-def split_file(file_path, file, typeOfData, device):
-    dataPaths = get_data_paths(file_path)
-    dataFromFile = load_data_from_file(
-        os.path.abspath(os.path.join(dataPaths[device][typeOfData], file))
+    # Initialize empty lists to store time series data and labels
+    time_series_data = []
+    activity_labels = []
+
+    # Iterate over each CSV file in the specified folder
+    for filename in sorted(os.listdir(folder_path)):
+        if filename.endswith(".csv") and not filename.startswith(".~"):
+            file_path = os.path.join(folder_path, filename)
+
+            # Read the CSV file into a pandas DataFrame
+            df = pd.read_csv(file_path)
+
+            # Group the DataFrame by 'Activity Label'
+            grouped = df.groupby("Activity Label")
+
+            # Iterate over each group (activity label)
+            for label, group in grouped:
+                # Extract relevant columns (excluding 'Subject-Id' and 'Time stamp')
+                accel_x = group["Accel_x"].values.tolist()
+                accel_y = group["Accel_y"].values.tolist()
+                accel_z = group["Accel_z"].values.tolist()
+                gyro_x = group["Gyro_x"].values.tolist()
+                gyro_y = group["Gyro_y"].values.tolist()
+                gyro_z = group["Gyro_z"].values.tolist()
+                time_series_data.append(
+                    [accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z]
+                )
+                activity_labels.append(label)
+    # make all sub-sub-arrays in the time_series_data array the same length as the smallest sub-sub-array
+    min_length = min(
+        len(subsubarray) for sublist in time_series_data for subsubarray in sublist
     )
+    time_series_data = [
+        [subsubarray[:min_length] for subsubarray in sublist]
+        for sublist in time_series_data
+    ]
+    activity_labels = np.array(activity_labels)
+    time_series_data = np.array(time_series_data)
+    return time_series_data, activity_labels
 
-    features = dataFromFile[["Activity Label", "Timestamp", "x", "y", "z"]]
-    Y_train = []
-    X_train = []
-    for i in range(0, len(features.index) // 100 * 100, SAMPLELEN):
-        previousLabel = ""
-        x = []
-        y = []
-        z = []
-        for k in range(0, SAMPLELEN):
-            if (i + k) < len(features.index):
-                if previousLabel == "" or features.iloc[i + k][0] == previousLabel:
-                    x.append(features.iloc[i + k][2])
-                    y.append(features.iloc[i + k][3])
-                    z.append(features.iloc[i + k][4])
-                    previousLabel = features.iloc[i + k][0]
-                else:
-                    break
-        if len(x) == len(y) == len(z) == SAMPLELEN:
-            X_train.append([x, y, z])
-            Y_train.append(previousLabel)
-    Y_train = np.array(Y_train)
-    X_train = np.array(X_train)
-    # Reshape XTrain to be in numpy3D format
-    X_train = X_train.reshape(-1, 3, SAMPLELEN)
 
-    return X_train, Y_train
+def fitFirst(modelName: str):
+    print("Loading Data...")
+    frames, labels = make_dataframes("ProcessedData", "Training")
 
-def load_data(file_path, typeOfData):
-    dataPaths = get_data_paths(file_path)
-    dataFileArrayAccel = os.listdir(dataPaths["Accel"][typeOfData])
-    dataFileArrayGyro = os.listdir(dataPaths["Gyro"][typeOfData])
-    XTrain_Combined_Accel = np.empty((0, 3, SAMPLELEN))
-    XTrain_Combined_Gyro = np.empty((0, 3, SAMPLELEN))
-    YTrain_Combined = []
-    for filename in dataFileArrayAccel:
-        if filename.startswith(".~") == False:
-            XTrain, YTrain = split_file(file_path, filename, typeOfData, "Accel")
-            XTrain_Combined_Accel = np.concatenate(
-                (XTrain_Combined_Accel, XTrain), axis=0
-            )
-            YTrain_Combined.extend(YTrain)
+    # Fit MiniRocket from SKTime using the frames and labels
 
-    for filename in dataFileArrayGyro:
-        if filename.startswith(".~") == False:
-            XTrainGyro, YTrainGyro = split_file(file_path, filename, typeOfData, "Gyro")
-            XTrain_Combined_Gyro = np.concatenate((XTrain_Combined_Gyro, XTrainGyro))
+    testFrames, testLabels = make_dataframes("ProcessedData", "Test")
 
-    XTrain_Combined_Accel = np.array(XTrain_Combined_Accel)
-    XTrain_Combined_Gyro = np.array(XTrain_Combined_Gyro)
-    min_length = min(XTrain_Combined_Accel.shape[0], XTrain_Combined_Gyro.shape[0])
-    XTrain_Combined = np.concatenate(
-        (XTrain_Combined_Accel[:min_length], XTrain_Combined_Gyro[:min_length]), axis=1
+    classifier = RocketClassifier(
+        rocket_transform="minirocket", num_kernels=10000, n_features_per_kernel=6
     )
-    YTrain_Combined = np.array(YTrain_Combined[:min_length])
-    return XTrain_Combined, YTrain_Combined
+    print("Fitting Classifier...")
+    classifier.fit(frames, labels)
 
-print("Loading data..\n")
-XTest, YTest = load_data("ProcessedData", "Test")
+    y_pred = classifier.predict(testFrames)
 
-XTrain, YTrain = load_data("ProcessedData", "Training")
+    report = classification_report(testLabels, y_pred)
+    print("Predictions:")
+    print(y_pred)
 
-classifier = CNNClassifier(n_epochs=50, verbose=True)
+    print("\nActual: ")
+    print(testLabels)
 
-print("Fitting Classifier..\n")
-classifier.fit(XTrain, YTrain)
+    print("\n\nProbabilities: ")
+    print(classifier.predict_proba(testFrames))
 
-print("Running Prediction..\n")
-y_pred = classifier.predict(XTest)
-y_predproba = classifier.predict_proba(XTest)
-print(f"guesses: \n {y_pred}")
-print(f"Probabilities from guess: \n {y_predproba}")
-print(f"Actual: \n {YTest}")
+    print("\n\nClassification Report:")
+    print(report)
+    os.makedirs(f"./models", exist_ok=True)
 
-report = classification_report(YTest, y_pred)
-print("Classification Report:\n", report)
+    classifier.save(f"./models/{modelName}")
 
-classifier.save("./models/CNN")
+
+def refit(modelPath: str, folderName: str):
+    print("Loading Data...")
+    frames, labels = make_dataframes(folderName, "Training")
+    # Fit MiniRocket from SKTime using the frames and labels
+
+    testFrames, testLabels = make_dataframes(folderName, "Test")
+
+    classifier = RocketClassifier.load_from_path(f"./models/{modelPath}.zip")
+    print("Fitting Classifier...")
+    classifier.fit(frames, labels)
+
+    y_pred = classifier.predict(testFrames)
+
+    report = classification_report(testLabels, y_pred)
+    print("Predictions:")
+    print(y_pred)
+
+    print("\nActual: ")
+    print(testLabels)
+
+    print("\n\nProbabilities: ")
+    print(classifier.predict_proba(testFrames))
+
+    print("\n\nClassification Report:")
+    print(report)
+
+
+refit("rocket", "newData")
