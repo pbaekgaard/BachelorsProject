@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import os
 from sktime.classification.kernel_based import RocketClassifier
+from sktime.classification.deep_learning.cnn import CNNClassifier
 from sklearn.metrics import classification_report
 
 
@@ -59,9 +60,7 @@ def fitFirst(modelName: str):
 
     testFrames, testLabels = make_dataframes("ProcessedData", "Test")
 
-    classifier = RocketClassifier(
-        rocket_transform="minirocket", num_kernels=10000, n_features_per_kernel=6
-    )
+    classifier = CNNClassifier()
     print("Fitting Classifier...")
     classifier.fit(frames, labels)
 
@@ -84,19 +83,20 @@ def fitFirst(modelName: str):
     classifier.save(f"./models/{modelName}")
 
 
-def refit(modelPath: str, folderName: str):
+def refit(modelName: str, folderName: str):
     print("Loading Data...")
     frames, labels = make_dataframes(folderName, "Training")
     # Fit MiniRocket from SKTime using the frames and labels
 
-    testFrames, testLabels = make_dataframes(folderName, "Test")
-
-    classifier = RocketClassifier.load_from_path(f"./models/{modelPath}.zip")
+    classifier = RocketClassifier.load_from_path(f"./models/{modelName}.zip")
     print("Fitting Classifier...")
     classifier.fit(frames, labels)
+    classifier.save(f"./models/{modelName}")
 
+def prediction(modelName: str, folderName: str):
+    testFrames, testLabels = make_dataframes(folderName, "Test")
+    classifier = RocketClassifier.load_from_path(f"./models/{modelName}.zip")
     y_pred = classifier.predict(testFrames)
-
     report = classification_report(testLabels, y_pred)
     print("Predictions:")
     print(y_pred)
@@ -111,4 +111,8 @@ def refit(modelPath: str, folderName: str):
     print(report)
 
 
-refit("rocket", "newData")
+fitFirst("CNN")
+# refit("Rocket", "newData")
+# prediction("Rocket", "ProcessedData")
+
+

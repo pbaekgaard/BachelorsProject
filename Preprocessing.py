@@ -106,5 +106,5 @@ def merge_data(folder, labels):
 
 
 print("Processing...\n")
-merge_data("newData", ["A"])
+merge_data("ProcessedData", ["A","P"])
 print("Done!")
