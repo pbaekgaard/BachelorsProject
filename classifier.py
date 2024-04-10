@@ -4,6 +4,7 @@ import os
 from sktime.classification.kernel_based import RocketClassifier
 from sktime.classification.deep_learning.cnn import CNNClassifier
 from sklearn.metrics import classification_report
+from sktime.base import load
 
 
 def make_dataframes(folder: str):
@@ -131,7 +132,7 @@ def refit(modelName: str, folderName: str):
 
 def prediction(modelName: str, folderName: str):
     frames, labels, testFrames, testLabels = make_dataframes(folderName)
-    classifier = RocketClassifier.load_from_path(f"./models/{modelName}.zip")
+    classifier = load(f"./models/{modelName}")
     y_pred = classifier.predict(testFrames)
     report = classification_report(testLabels, y_pred)
     print("Predictions:")
@@ -149,4 +150,4 @@ def prediction(modelName: str, folderName: str):
 
 fitFirst("CNN")
 # refit("Rocket", "newData")
-# prediction("Rocket", "ProcessedData")
+prediction("CNN", "ProcessedData")
