@@ -32,9 +32,7 @@ def merge_data(folder, labels):
                     if user_id not in user_data:
                         user_data[user_id] = {"accel": [], "gyro": []}
 
-                    user_data[user_id]["accel"].append(
-                        (activity_label, timestamp, accel_data)
-                    )
+                    user_data[user_id]["accel"].append((activity_label, timestamp, accel_data))
 
     # Process gyroscope data
     for gyro_file in os.listdir(gyro_folder):
@@ -59,18 +57,12 @@ def merge_data(folder, labels):
 
     for user_id, data in user_data.items():
         # Merge data and write to output file
-        with open(
-            os.path.join(output_file_path, f"data_{user_id}_merged.csv"), "w"
-        ) as output_file:
-            output_file.write(
-                "Subject-Id,Activity Label,Time stamp,Accel_x,Accel_y,Accel_z,Gyro_x,Gyro_y,Gyro_z\n"
-            )
+        with open(os.path.join(output_file_path, f"data_{user_id}_merged.csv"), "w") as output_file:
+            output_file.write("Subject-Id,Activity Label,Time stamp,Accel_x,Accel_y,Accel_z,Gyro_x,Gyro_y,Gyro_z\n")
             for accel_entry, gyro_entry in zip(data["accel"], data["gyro"]):
                 accel_data = ",".join(accel_entry[2])
                 gyro_data = ",".join(gyro_entry[1])
-                output_file.write(
-                    f"{user_id},{accel_entry[0]},{accel_entry[1]},{accel_data},{gyro_data}\n"
-                )
+                output_file.write(f"{user_id},{accel_entry[0]},{accel_entry[1]},{accel_data},{gyro_data}\n")
 
     # Split files into Test, Training, and Validation sets
     output_files = os.listdir(output_file_path)
@@ -106,5 +98,5 @@ def merge_data(folder, labels):
 
 
 print("Processing...\n")
-merge_data("ProcessedData", ["A","P"])
+merge_data("ProcessedData", ["B", "C", "M"])
 print("Done!")
