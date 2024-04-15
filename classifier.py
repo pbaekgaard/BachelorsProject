@@ -5,98 +5,55 @@ from sktime.classification.kernel_based import RocketClassifier
 from sktime.classification.deep_learning.cnn import CNNClassifier
 
 from sklearn.metrics import classification_report
-from sktime.base import load
-import torch
-from torch import nn
-from torch.utils.data import TensorDataset, DataLoader
-
-from components.make_dataframes import make_dataframes
-
-N_EPOCHS = 250
-BATCH_SIZE = 32
 
 
-def make_classifier(
-    time_series_data_train,
-    activity_labels_train,
-    time_series_data_test,
-    activity_labels_test,
-    learning_rate=0.01,
-    epochs=N_EPOCHS,
-):
-    """
-    Builds, trains, and evaluates an LSTM classifier for activity recognition.
+def make_dataframes(folder: str):
+    # Path to the ProcessedData folder
+    base_path = folder
+    folder_path = os.path.join(base_path, "Training")
+    folder_path_test = os.path.join(base_path, "Test")
 
-    Args:
-        time_series_data_train (np.ndarray): Training data features.
-        activity_labels_train (np.ndarray): Training data labels.
-        time_series_data_test (np.ndarray): Testing data features.
-        activity_labels_test (np.ndarray): Testing data labels.
-        learning_rate (float, optional): Learning rate for the optimizer. Defaults to 0.001.
-        epochs (int, optional): Number of training epochs. Defaults to 10.
+    # Initialize empty lists to store time series data and labels
+    time_series_data_Training = []
+    activity_labels_Training = []
+    time_series_data_Test = []
+    activity_labels_Test = []
 
-    Returns:
-        None
-    """
-    # Convert character labels to numerical labels (assuming unique characters)
-    label_map_index = {i: label for i, label in enumerate(set(activity_labels_train))}
-    label_map = {label: i for i, label in enumerate(set(activity_labels_train))}
-    activity_labels_train_num = np.array(
-        [label_map[label] for label in activity_labels_train]
-    )
-    activity_labels_test_num = np.array(
-        [label_map[label] for label in activity_labels_test]
-    )
 
-    # Convert data to Tensors
-    train_data = TensorDataset(
-        torch.from_numpy(time_series_data_train).float(),
-        torch.from_numpy(activity_labels_train_num),
-    )
-    test_data = TensorDataset(
-        torch.from_numpy(time_series_data_test).float(),
-        torch.from_numpy(activity_labels_test_num),
-    )
+    # Iterate over each CSV file in the specified folder
+    for filename in sorted(os.listdir(folder_path)):
+        if filename.endswith(".csv") and not filename.startswith(".~"):
+            file_path = os.path.join(folder_path, filename)
 
-    # Create DataLoaders
-    train_loader = DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=True)
-    test_loader = DataLoader(test_data, batch_size=BATCH_SIZE, shuffle=False)
+            # Read the CSV file into a pandas DataFrame
+            df = pd.read_csv(file_path)
 
-    # Define the LSTM model
-    class LSTMClassifier(nn.Module):
-        def __init__(self, input_size, hidden_size, num_classes):
-            super(LSTMClassifier, self).__init__()
-            self.lstm = nn.LSTM(
-                input_size, hidden_size, batch_first=True, dropout=0.75, num_layers=6
-            )
-            self.classifier = nn.Linear(hidden_size, num_classes)
+            # Group the DataFrame by 'Activity Label'
+            grouped = df.groupby("Activity Label")
 
-        def forward(self, x):
-            self.lstm.flatten_parameters()
-            _, (hidden, _) = self.lstm(x)
-            out = hidden[-1]
-            return self.classifier(out)
+            # Iterate over each group (activity label)
+            for label, group in grouped:
+                # Extract relevant columns (excluding 'Subject-Id' and 'Time stamp')
+                accel_x = group["Accel_x"].values.tolist()
+                accel_y = group["Accel_y"].values.tolist()
+                accel_z = group["Accel_z"].values.tolist()
+                gyro_x = group["Gyro_x"].values.tolist()
+                gyro_y = group["Gyro_y"].values.tolist()
+                gyro_z = group["Gyro_z"].values.tolist()
+                time_series_data_Training.append(
+                    [accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z]
+                )
+                activity_labels_Training.append(label)
 
-    # Define model parameters
-    input_size = len(
-        time_series_data_train[0][0]
-    )  # Number of features in each sequence
-    hidden_size = 256  # Number of hidden units in LSTM
-    num_classes = len(set(activity_labels_train))  # Number of unique activity labels
+    for filename in sorted(os.listdir(folder_path_test)):
+        if filename.endswith(".csv") and not filename.startswith(".~"):
+            file_path = os.path.join(folder_path_test, filename)
 
-    # Create the model instance
-    model = LSTMClassifier(input_size, hidden_size, num_classes)
+            # Read the CSV file into a pandas DataFrame
+            df = pd.read_csv(file_path)
 
-    # Use cross-entropy loss for multi-class classification
-    criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-
-    # Train the model
-    for epoch in range(epochs):
-        for i, (data, labels) in enumerate(train_loader):
-            # Forward pass
-            outputs = model(data)
-            loss = criterion(outputs, labels)
+            # Group the DataFrame by 'Activity Label'
+            grouped = df.groupby("Activity Label")
 
             # Backward pass and optimize
             optimizer.zero_grad()
@@ -207,7 +164,7 @@ def refit(modelName: str, folderName: str):
 
 def prediction(modelName: str, folderName: str):
     frames, labels, testFrames, testLabels = make_dataframes(folderName)
-    classifier = load(f"./models/{modelName}")
+    classifier = RocketClassifier.load_from_path(f"./models/{modelName}.zip")
     y_pred = classifier.predict(testFrames)
     report = classification_report(testLabels, y_pred)
     print("Predictions:")
@@ -223,6 +180,6 @@ def prediction(modelName: str, folderName: str):
     print(report)
 
 
-# fitFirst("CNN")
-# refit("CNN", "newData")
-# prediction("CNN", "ProcessedData")
+fitFirst("CNN")
+# refit("Rocket", "newData")
+# prediction("Rocket", "ProcessedData")
