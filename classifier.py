@@ -1,13 +1,15 @@
 import pandas as pd
 import numpy as np
 import os
+import sys
+import math
 from sktime.classification.kernel_based import RocketClassifier
 from sktime.classification.deep_learning.cnn import CNNClassifier
-
 from sklearn.metrics import classification_report
+from sktime.base import load
 
 
-def make_dataframes(folder: str):
+def make_dataframes(folder: str, isBuffer:bool = False):
     # Path to the ProcessedData folder
     base_path = folder
     folder_path = os.path.join(base_path, "Training")
@@ -21,6 +23,7 @@ def make_dataframes(folder: str):
 
 
     # Iterate over each CSV file in the specified folder
+    numberOfIterationsOverFilename = 0
     for filename in sorted(os.listdir(folder_path)):
         if filename.endswith(".csv") and not filename.startswith(".~"):
             file_path = os.path.join(folder_path, filename)
@@ -44,86 +47,64 @@ def make_dataframes(folder: str):
                     [accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z]
                 )
                 activity_labels_Training.append(label)
+            numberOfIterationsOverFilename = numberOfIterationsOverFilename + 1
+            if(isBuffer and numberOfIterationsOverFilename == (math.ceil(0.1 * len(os.listdir(folder_path))))):
+                break
 
-    for filename in sorted(os.listdir(folder_path_test)):
-        if filename.endswith(".csv") and not filename.startswith(".~"):
-            file_path = os.path.join(folder_path_test, filename)
 
-            # Read the CSV file into a pandas DataFrame
-            df = pd.read_csv(file_path)
+    if (isBuffer is False):
+        for filename in sorted(os.listdir(folder_path_test)):
+            if filename.endswith(".csv") and not filename.startswith(".~"):
+                file_path = os.path.join(folder_path_test, filename)
 
-            # Group the DataFrame by 'Activity Label'
-            grouped = df.groupby("Activity Label")
+                # Read the CSV file into a pandas DataFrame
+                df = pd.read_csv(file_path)
 
-            # Backward pass and optimize
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
+                # Group the DataFrame by 'Activity Label'
+                grouped = df.groupby("Activity Label")
 
-            if (i + 1) % 100 == 0:
-                print(
-                    f"Epoch [{epoch+1}/{epochs}], Step [{i+1}/{len(train_loader)}], Loss: {loss.item():.4f}"
-                )
-
-    # Evaluate the model on test data
-    with torch.no_grad():
-        correct = 0
-        total = 0
-        for data, labels in test_loader:
-            outputs = model(data)
-            probabilities = torch.nn.functional.softmax(outputs, dim=1)
-            _, predicted = torch.max(probabilities.data, 1)
-            total += labels.size(0)
-            correct += (predicted == labels).sum().item()
-            if len(predicted) > 5:
-                for i in range(len(predicted)):
-                    prob_list = probabilities[i].tolist()
-                    print(
-                        f"Sample {i+1} - Predicted: {label_map_index[predicted[i].item()]} - Probability: {prob_list}"
+                # Iterate over each group (activity label)
+                for label, group in grouped:
+                    # Extract relevant columns (excluding 'Subject-Id' and 'Time stamp')
+                    accel_x = group["Accel_x"].values.tolist()
+                    accel_y = group["Accel_y"].values.tolist()
+                    accel_z = group["Accel_z"].values.tolist()
+                    gyro_x = group["Gyro_x"].values.tolist()
+                    gyro_y = group["Gyro_y"].values.tolist()
+                    gyro_z = group["Gyro_z"].values.tolist()
+                    time_series_data_Test.append(
+                        [accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z]
                     )
-        predicted_labels = predicted.numpy()
-        predicted_labels_char = [label_map_index[label] for label in predicted_labels]
-        print(f"Predicted labels: {predicted_labels_char}")
-        print(f"Actual labels: {activity_labels_test}")
-        print(f"Accuracy of the model on the test data: {100 * correct / total:.3f}%")
-
-
-def pytorchTest():
-    (
-        time_series_data_train,
-        activity_labels_train,
-        time_series_data_test,
-        activity_labels_test,
-    ) = make_dataframes("ProcessedData")
-    # Train and evaluate the classifier
-    make_classifier(
-        time_series_data_train,
-        activity_labels_train,
-        time_series_data_test,
-        activity_labels_test,
+                    activity_labels_Test.append(label)
+    # make all sub-sub-arrays in the time_series_data array the same length as the smallest sub-sub-array
+    min_length = min(
+        len(subsubarray) for sublist in time_series_data_Training for subsubarray in sublist
     )
-
-
-pytorchTest()
+    min_length_test = min(len(subsubarray) for sublist in time_series_data_Test for subsubarray in sublist)
+    min_length = min(min_length, min_length_test)
+    time_series_data_Training = [
+        [subsubarray[:min_length] for subsubarray in sublist]
+        for sublist in time_series_data_Training
+    ]
+    time_series_data_Test = [
+        [subsubarray[:min_length] for subsubarray in sublist]
+        for sublist in time_series_data_Test
+    ]
+    activity_labels_Training = np.array(activity_labels_Training)
+    time_series_data_Training = np.array(time_series_data_Training)
+    activity_labels_Test = np.array(activity_labels_Test)
+    time_series_data_Test = np.array(time_series_data_Test)
+    return time_series_data_Training, activity_labels_Training, time_series_data_Test, activity_labels_Test
 
 
 def fitFirst(modelName: str):
-    """
-    Description of the function.
-
-    Parameters:
-    modelName (str): The name of the model to be saved.
-
-    Returns:
-    None
-    """
-
     print("Loading Data...")
     frames, labels, testFrames, testLabels = make_dataframes("ProcessedData")
 
-    classifier = CNNClassifier(n_epochs=50, verbose=True)
-    if testFrames == frames:
-        print("oh no")
+
+
+    classifier = RocketClassifier()
+
     print("Fitting Classifier...")
     classifier.fit(frames, labels)
 
@@ -143,10 +124,6 @@ def fitFirst(modelName: str):
     print(report)
     os.makedirs(f"./models", exist_ok=True)
 
-    # Freeze the first 20 layers of the model (not sure if this works)
-    # layers_to_freeze = 20
-    # for layers in classifier.model_.layers[:layers_to_freeze]:
-    #    layers.trainable = False
     classifier.save(f"./models/{modelName}")
 
 
@@ -158,13 +135,12 @@ def refit(modelName: str, folderName: str):
     classifier = RocketClassifier.load_from_path(f"./models/{modelName}.zip")
     print("Fitting Classifier...")
     classifier.fit(frames, labels)
-
     classifier.save(f"./models/{modelName}")
 
 
 def prediction(modelName: str, folderName: str):
     frames, labels, testFrames, testLabels = make_dataframes(folderName)
-    classifier = RocketClassifier.load_from_path(f"./models/{modelName}.zip")
+    classifier = load(f"./models/{modelName}")
     y_pred = classifier.predict(testFrames)
     report = classification_report(testLabels, y_pred)
     print("Predictions:")
@@ -179,7 +155,7 @@ def prediction(modelName: str, folderName: str):
     print("\n\nClassification Report:")
     print(report)
 
-
-fitFirst("CNN")
+make_dataframes("ProcessedData", True)
+# fitFirst("Rocket")
 # refit("Rocket", "newData")
 # prediction("Rocket", "ProcessedData")
