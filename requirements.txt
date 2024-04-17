@@ -3,3 +3,5 @@ sktime==0.27.0
 llvmlite==0.42.0 
 numba==0.59.0 
 numpy==1.26.4
+torch==1.8.1
+pytorch-lightning==1.2.6
