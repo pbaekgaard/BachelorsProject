@@ -1,12 +1,12 @@
-import pandas as pd
-import numpy as np
 import os
 import sys
 import math
+import numpy as np
+import pandas as pd
+from sktime.base import load
+from sklearn.metrics import classification_report
 from sktime.classification.kernel_based import RocketClassifier
 from sktime.classification.deep_learning.cnn import CNNClassifier
-from sklearn.metrics import classification_report
-from sktime.base import load
 
 
 def make_dataframes(folder: str, isBuffer:bool = False):
@@ -101,12 +101,12 @@ def fitFirst(modelName: str):
     print("Loading Data...")
     frames, labels, testFrames, testLabels = make_dataframes("ProcessedData")
 
-
-
     classifier = RocketClassifier()
 
     print("Fitting Classifier...")
     classifier.fit(frames, labels)
+
+    make_buffer_fitfirst(frames, labels)
 
     y_pred = classifier.predict(testFrames)
 
@@ -131,12 +131,31 @@ def refit(modelName: str, folderName: str):
     print("Loading Data...")
     frames, labels, testFrames, testLabels = make_dataframes(folderName)
     # Fit MiniRocket from SKTime using the frames and labels
-
+    
     classifier = RocketClassifier.load_from_path(f"./models/{modelName}.zip")
     print("Fitting Classifier...")
+
+    #frames, labels = include_buffer(frames, labels)
+    
+    #print("Frames: ", len(frames), " Labels: ", len(labels))
+
     classifier.fit(frames, labels)
+
+    make_buffer_refit(frames, labels)
+
     classifier.save(f"./models/{modelName}")
 
+def include_buffer(_frames, _labels):
+    buffer_filepath = "./buffer"
+    
+    # Load existing buffer data
+    buffer_frames = np.load(buffer_filepath + "/buffer_frames.npy")
+    buffer_labels = np.load(buffer_filepath + "/buffer_labels.npy")
+
+    _frames = np.append(_frames, buffer_frames)
+    _labels = np.append(_labels, buffer_labels)
+
+    return _frames, _labels
 
 def prediction(modelName: str, folderName: str):
     frames, labels, testFrames, testLabels = make_dataframes(folderName)
@@ -155,7 +174,83 @@ def prediction(modelName: str, folderName: str):
     print("\n\nClassification Report:")
     print(report)
 
-make_dataframes("ProcessedData", True)
+def make_buffer_fitfirst(_frames, _labels):
+    buffer_filepath = "./buffer"
+    
+    # Get unique labels and their counts
+    unique_labels, label_counts = np.unique(_labels, return_counts=True)
+
+    # Calculate the number of elements to select for each label
+    ten_percent_counts = np.ceil(label_counts * 0.1).astype(int)
+
+    # Create an array to store the selected labels and frames
+    selected_frames = []
+    selected_labels = []
+
+    # Iterate over unique labels and select 10% of each
+    for label, count in zip(unique_labels, ten_percent_counts):
+        indices = np.where(_labels == label)[0]  # Get indices of current label
+        selected_indices = indices[:count]  # Select 10% of indices
+        selected_frames.extend(_frames[selected_indices])  # Add selected labels to the result
+        selected_labels.extend(_labels[selected_indices])  # Add selected labels to the result
+
+    print("Frames: ", len(selected_frames), " Labels: ", len(selected_labels))
+
+    np.save(buffer_filepath + "/buffer_frames", selected_frames)
+    np.save(buffer_filepath + "/buffer_labels", selected_labels)
+
+    print("10 percent of labels from first fit: ", selected_labels)
+
+def make_buffer_refit(_frames, _labels):
+    buffer_filepath = "./buffer"
+    
+    # Load existing buffer data
+    buffer_frames_old = np.load(buffer_filepath + "/buffer_frames.npy")
+    buffer_labels_old = np.load(buffer_filepath + "/buffer_labels.npy")
+
+    print("Pre refit buffer labels: ", buffer_labels_old)
+
+    # Slice the original array to get the first 10% of elements
+    ten_percent_length = math.ceil(int(len(_frames) * 0.1))
+    ten_percent_length = math.ceil(int(len(_labels) * 0.1))
+
+    buffer_frames = _frames[:ten_percent_length]
+    buffer_labels = _labels[:ten_percent_length]
+
+    # Check if the current label is already in the buffer files
+    if buffer_labels[0] in buffer_labels_old:
+        buffer_buffer_frames = []
+        buffer_buffer_labels = []
+        i = 0
+
+        for label in buffer_labels_old:
+            if label != buffer_labels[0]:
+                buffer_buffer_frames.append(buffer_frames_old[i])
+                buffer_buffer_labels.append(label)
+
+            i += 1
+
+        buffer_buffer_labels = np.append(buffer_buffer_labels, buffer_labels)
+        buffer_buffer_frames = np.append(buffer_buffer_frames, buffer_frames)
+        
+        buffer_labels_old = buffer_buffer_labels
+        buffer_frames_old = buffer_buffer_frames
+
+        print("Updated existing entries in buffer: ", buffer_buffer_labels)
+    else:
+        buffer_labels_old = np.append(buffer_labels_old, buffer_labels)
+
+        print(len(buffer_frames_old[2][0]), len(buffer_frames[3][0]))
+        #print("Frames: ", len(frames_temp), " Labels: ", len(buffer_labels_old))
+        print("Saved new buffer labels: ", buffer_labels_old)
+
+    if not os.path.exists(buffer_filepath):
+        print("Run fitfirst() first to create buffer files!")
+
+    np.save(buffer_filepath + "/buffer_frames", buffer_frames_old)
+    np.save(buffer_filepath + "/buffer_labels", buffer_labels_old)
+
+# make_dataframes("ProcessedData", True)
 # fitFirst("Rocket")
-# refit("Rocket", "newData")
+refit("Rocket", "NewData")
 # prediction("Rocket", "ProcessedData")

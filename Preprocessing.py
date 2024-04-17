@@ -70,6 +70,7 @@ def merge_data(folder, labels):
     num_files = len(output_files)
     test_files = int(num_files * 0.15)
     train_files = int(num_files * 0.8)
+
     valid_files = num_files - test_files - train_files
 
     test_set = output_files[:test_files]
@@ -96,7 +97,7 @@ def merge_data(folder, labels):
     for file in valid_set:
         shutil.move(os.path.join(output_file_path, file), valid_folder)
 
-
 print("Processing...\n")
 merge_data("NewData", ["A"])
+merge_data("ProcessedData", ["B", "C", "M"])
 print("Done!")
