@@ -16,6 +16,9 @@ def merge_data(folder, labels):
     accel_folder = "raw/phone/accel"
     gyro_folder = "raw/phone/gyro"
 
+    ## REMOVE FOLDER IF IT ALREADY EXISTS
+    shutil.rmtree(output_folder)
+
     # Process accelerometer data
     for accel_file in os.listdir(accel_folder):
         if accel_file.startswith("data") and accel_file.endswith("_accel_phone.txt"):
@@ -97,7 +100,9 @@ def merge_data(folder, labels):
     for file in valid_set:
         shutil.move(os.path.join(output_file_path, file), valid_folder)
 
+
 print("Processing...\n")
 merge_data("NewData", ["A"])
 merge_data("ProcessedData", ["B", "C", "M"])
+merge_data("StupidTestData", ["A", "B", "C", "M"])
 print("Done!")
