@@ -96,14 +96,13 @@ def make_dataframes(folder: str, isBuffer:bool = False):
     time_series_data_Test = np.array(time_series_data_Test)
     return time_series_data_Training, activity_labels_Training, time_series_data_Test, activity_labels_Test
 
-
 def fitFirst(modelName: str):
-    print("Loading Data...")
+    print("Running firfirst -> Loading Data...")
     frames, labels, testFrames, testLabels = make_dataframes("ProcessedData")
 
     classifier = RocketClassifier()
 
-    print("Fitting Classifier...")
+    print("In progress: fitfirst -> Fitting Classifier...")
     classifier.fit(frames, labels)
 
     make_buffer_fitfirst(frames, labels)
@@ -111,16 +110,16 @@ def fitFirst(modelName: str):
     y_pred = classifier.predict(testFrames)
 
     report = classification_report(testLabels, y_pred)
-    print("Predictions:")
+    print("fitfirst -> Predictions:")
     print(y_pred)
 
-    print("\nActual: ")
+    print("\nfitfirst -> Actual: ")
     print(testLabels)
 
-    print("\n\nProbabilities: ")
+    print("\n\nfitfirst -> Probabilities: ")
     print(classifier.predict_proba(testFrames))
 
-    print("\n\nClassification Report:")
+    print("\n\nfitfirst -> Classification Report:")
     print(report)
     os.makedirs(f"./models", exist_ok=True)
 
@@ -128,34 +127,31 @@ def fitFirst(modelName: str):
 
 
 def refit(modelName: str, folderName: str):
-    print("Loading Data...")
+    print("Running refit -> Loading Data...")
     frames, labels, testFrames, testLabels = make_dataframes(folderName)
     # Fit MiniRocket from SKTime using the frames and labels
     
-    classifier = RocketClassifier.load_from_path(f"./models/{modelName}.zip")
-    print("Fitting Classifier...")
-
-    #frames, labels = include_buffer(frames, labels)
-    
-    #print("Frames: ", len(frames), " Labels: ", len(labels))
-
-    classifier.fit(frames, labels)
-
-    make_buffer_refit(frames, labels)
-
-    classifier.save(f"./models/{modelName}")
-
-def include_buffer(_frames, _labels):
-    buffer_filepath = "./buffer"
-    
     # Load existing buffer data
+    buffer_filepath = "./buffer"
     buffer_frames = np.load(buffer_filepath + "/buffer_frames.npy")
     buffer_labels = np.load(buffer_filepath + "/buffer_labels.npy")
 
-    _frames = np.append(_frames, buffer_frames)
-    _labels = np.append(_labels, buffer_labels)
+    # Append the buffer
+    print("refit data shape init -> ", frames.shape, " - ", labels.shape)
+    frames = minimize_and_concatenate(frames, buffer_frames)
+    labels = np.append(labels, buffer_labels)
+    print("refit data shape w/ buffer -> ", frames.shape, " - ", labels.shape)
 
-    return _frames, _labels
+    classifier = RocketClassifier.load_from_path(f"./models/{modelName}.zip")
+    print("In progress: refit -> Fitting Classifier...")
+
+    classifier.fit(frames, labels)
+
+    print("refit -> Finished!")
+    
+    make_buffer_refit(frames, labels)
+
+    classifier.save(f"./models/{modelName}")
 
 def prediction(modelName: str, folderName: str):
     frames, labels, testFrames, testLabels = make_dataframes(folderName)
@@ -175,13 +171,16 @@ def prediction(modelName: str, folderName: str):
     print(report)
 
 def make_buffer_fitfirst(_frames, _labels):
+    #Percent in decimal
+    buffer_percent = 0.25
+    
     buffer_filepath = "./buffer"
     
     # Get unique labels and their counts
     unique_labels, label_counts = np.unique(_labels, return_counts=True)
 
     # Calculate the number of elements to select for each label
-    ten_percent_counts = np.ceil(label_counts * 0.1).astype(int)
+    ten_percent_counts = np.ceil(label_counts * buffer_percent).astype(int)
 
     # Create an array to store the selected labels and frames
     selected_frames = []
@@ -194,14 +193,15 @@ def make_buffer_fitfirst(_frames, _labels):
         selected_frames.extend(_frames[selected_indices])  # Add selected labels to the result
         selected_labels.extend(_labels[selected_indices])  # Add selected labels to the result
 
-    print("Frames: ", len(selected_frames), " Labels: ", len(selected_labels))
-
     np.save(buffer_filepath + "/buffer_frames", selected_frames)
     np.save(buffer_filepath + "/buffer_labels", selected_labels)
 
-    print("10 percent of labels from first fit: ", selected_labels)
+    #print("10 percent of labels from first fit: ", selected_labels)
 
 def make_buffer_refit(_frames, _labels):
+    #Percent in decimal
+    buffer_percent = 0.25
+    
     buffer_filepath = "./buffer"
     
     # Load existing buffer data
@@ -211,44 +211,71 @@ def make_buffer_refit(_frames, _labels):
     print("Pre refit buffer labels: ", buffer_labels_old)
 
     # Slice the original array to get the first 10% of elements
-    ten_percent_length = math.ceil(int(len(_frames) * 0.1))
-    ten_percent_length = math.ceil(int(len(_labels) * 0.1))
+    percent_length = math.ceil(int(len(_frames) * buffer_percent))
+    percent_length = math.ceil(int(len(_labels) * buffer_percent))
 
-    buffer_frames = _frames[:ten_percent_length]
-    buffer_labels = _labels[:ten_percent_length]
+    buffer_frames = _frames[:percent_length]
+    buffer_labels = _labels[:percent_length]
 
     # Check if the current label is already in the buffer files
     if buffer_labels[0] in buffer_labels_old:
-        buffer_buffer_frames = []
-        buffer_buffer_labels = []
-        i = 0
+        # buffer_buffer_frames = []
+        # buffer_buffer_labels = []
+        # i = 0
 
-        for label in buffer_labels_old:
-            if label != buffer_labels[0]:
-                buffer_buffer_frames.append(buffer_frames_old[i])
-                buffer_buffer_labels.append(label)
+        # for label in buffer_labels_old:
+        #     if label != buffer_labels[0]:
+        #         buffer_buffer_frames = minimize_and_concatenate(buffer_buffer_frames, buffer_frames_old[i])
+        #         buffer_buffer_labels.append(label)
 
-            i += 1
+        #     i += 1
 
-        buffer_buffer_labels = np.append(buffer_buffer_labels, buffer_labels)
-        buffer_buffer_frames = np.append(buffer_buffer_frames, buffer_frames)
+        # buffer_buffer_labels = np.append(buffer_buffer_labels, buffer_labels)
+        # buffer_buffer_frames = minimize_and_concatenate(buffer_buffer_frames, buffer_frames)
         
-        buffer_labels_old = buffer_buffer_labels
-        buffer_frames_old = buffer_buffer_frames
+        # buffer_labels_old = buffer_buffer_labels
+        # buffer_frames_old = buffer_buffer_frames
 
-        print("Updated existing entries in buffer: ", buffer_buffer_labels)
+        # print("Updated existing entries in buffer: ", buffer_buffer_labels)
+
+        pass
     else:
         buffer_labels_old = np.append(buffer_labels_old, buffer_labels)
+        buffer_frames_old = minimize_and_concatenate(buffer_frames_old, buffer_frames)
 
-        print(len(buffer_frames_old[2][0]), len(buffer_frames[3][0]))
-        #print("Frames: ", len(frames_temp), " Labels: ", len(buffer_labels_old))
-        print("Saved new buffer labels: ", buffer_labels_old)
+    print("Saved new buffer labels: ", buffer_labels_old)
 
     if not os.path.exists(buffer_filepath):
         print("Run fitfirst() first to create buffer files!")
 
     np.save(buffer_filepath + "/buffer_frames", buffer_frames_old)
     np.save(buffer_filepath + "/buffer_labels", buffer_labels_old)
+
+def minimize_and_concatenate(arr1, arr2):
+    """
+    Trim both arrays along the third dimension to the minimum length,
+    and concatenate them along the first dimension.
+    
+    Parameters:
+        arr1 (numpy.ndarray): First array.
+        arr2 (numpy.ndarray): Second array.
+    
+    Returns:
+        numpy.ndarray: Concatenated array with the third dimension trimmed.
+    """
+    # Get the minimum length among the two arrays along the third dimension
+    min_length = min(arr1.shape[2], arr2.shape[2])
+    
+    # Trim both arrays along the third dimension to the minimum length
+    trimmed_arr1 = arr1[:, :, :min_length]
+    trimmed_arr2 = arr2[:, :, :min_length]
+    
+    # Concatenate the trimmed arrays along the first dimension
+    concatenated_array = np.concatenate((trimmed_arr1, trimmed_arr2), axis=0)
+
+    print("Frame Minimization and Concatenation Finished!")
+
+    return concatenated_array
 
 # make_dataframes("ProcessedData", True)
 # fitFirst("Rocket")
