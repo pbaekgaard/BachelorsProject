@@ -1,9 +1,11 @@
+from pytorch_lightning.callbacks import ModelCheckpoint
 from components.make_sequences import make_sequences
 from sklearn.preprocessing import LabelEncoder
 from components.activitydatamodule import ActivityDataModule
 from components.activitypredictor import ActivityPredictor
 import pytorch_lightning as pl
 from pytorch_lightning import loggers
+import torch
 
 label_encoder = LabelEncoder()
 N_EPOCH = 1
@@ -17,11 +19,16 @@ def fitFirst(folder: str):
     data_module = ActivityDataModule(seq, seq_test, BATCH_SIZE)
     model = ActivityPredictor(n_features=6, n_classes=len(label_encoder.classes_))  # type: ignore
     logger = loggers.TensorBoardLogger("lightning_logs", name="activity_classifier")
-    trainer = pl.Trainer(max_epochs=N_EPOCH, logger=logger)
+    model_checkpoint = ModelCheckpoint(
+        monitor="val_loss",
+        mode="min",
+        save_top_k=1,
+        dirpath="pl_models",
+        filename="best_model",
+    )
+    trainer = pl.Trainer(max_epochs=N_EPOCH, logger=logger, default_root_dir="pl_models", callbacks=[model_checkpoint])
     trainer.fit(model, data_module)
     trainer.test(model, data_module.test_dataloader())
 
-
-# Fit and Predict
 
 fitFirst("ProcessedData")
