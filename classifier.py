@@ -20,7 +20,7 @@ mem_bank: list = []
 
 
 def memorable_bank(training_data, predicted_labels, training_labels, confidence_scores):
-    confidence_threshold = 0.70  # Adjust this threshold based on your data
+    confidence_threshold = 0.85  # Adjust this threshold based on your data
     memorable_bank: list = []
     for data, predicted_label, label, confidence in zip(
         training_data, predicted_labels, training_labels, confidence_scores
@@ -223,8 +223,8 @@ def learnNewLabel(
     print("\n\nClassification Report:")
     print(report)
 
-    plt.title(f"Refit of {str(classifier).split('(')[0]}, No Buffer")
-    plt.savefig(f"./pictures/refit_{str(classifier).split('(')[0]}_nobuffer.svg", format="svg")
+    plt.title(f"Refit of {str(classifier).split('(')[0]}, Buffer")
+    plt.savefig(f"./pictures/refit_{str(classifier).split('(')[0]}_buffer.svg", format="svg")
     print("\n\nF1 Score, Precision, Recall, Support (Micro):")
     print(fscoreSupportMicro)
 
@@ -242,13 +242,13 @@ def dataShuffler(data, labels):
 
 frames, labels, testFrames, testLabels = make_dataframes("ProcessedData", WINDOW_SIZE)
 profiler = Profiler()
-fitFirst("cnn_buffer", frames, labels, testFrames, testLabels, estimators=50)
+fitFirst("cnn_buffer_noise", frames, labels, testFrames, testLabels, estimators=50)
 # profiler.stop()
 profiler.start()
 refitFrames, refitLabels, refitTestFrames, refitTestLabels = make_dataframes("NewData", WINDOW_SIZE)
 stupidFrames, stupidLabels, stupidTestFrames, stupidTestLabels = make_dataframes("StupidTestData", WINDOW_SIZE)
 learnNewLabel(
-    "cnn_buffer",
+    "cnn_buffer_noise",
     "NewData",
     frames=refitFrames,
     labels=refitLabels,
