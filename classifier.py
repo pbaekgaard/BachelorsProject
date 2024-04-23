@@ -5,16 +5,22 @@ import math
 from sklearn.metrics import classification_report
 from sktime.base import load
 from components.make_dataframes import make_dataframes
-from sktime.classification.interval_based import DrCIF
-import pandas as pd
+from sktime.classification.deep_learning.lstmfcn import LSTMFCNClassifier
+from sktime.classification.deep_learning.cnn import CNNClassifier
+from sktime.classification.kernel_based import RocketClassifier
+from pyinstrument import Profiler
+from sklearn.metrics import ConfusionMatrixDisplay
+from memory_profiler import profile
+import matplotlib.pyplot as plt
+from sklearn.metrics import precision_recall_fscore_support
 
 N_ESTIMATORS = 256
-WINDOW_SIZE = 300
+WINDOW_SIZE = 200
 mem_bank: list = []
 
 
 def memorable_bank(training_data, predicted_labels, training_labels, confidence_scores):
-    confidence_threshold = 0.95  # Adjust this threshold based on your data
+    confidence_threshold = 0.70  # Adjust this threshold based on your data
     memorable_bank: list = []
     for data, predicted_label, label, confidence in zip(
         training_data, predicted_labels, training_labels, confidence_scores
@@ -24,10 +30,17 @@ def memorable_bank(training_data, predicted_labels, training_labels, confidence_
         nparr = np.array([data])
         if conf < (confidence_threshold) and predicted_label == label:
             memorable_bank.append((nparr, label))
+    # add 6 random samples for each label in training data
+    for i in range(len(set(training_labels))):
+        for j in range(80):
+            index = random.randint(0, len(training_data) - 1)
+            if training_labels[index] == list(set(training_labels))[i]:
+                nparr = np.array([training_data[index]])
+                memorable_bank.append((nparr, training_labels[index]))
     return memorable_bank
 
 
-def fitFirst(modelName: str, estimators: int = None):
+def fitFirst(modelName: str, frames, labels, testFrames, testLabels, estimators=None):
     """
     Description of the function.
 
@@ -38,7 +51,6 @@ def fitFirst(modelName: str, estimators: int = None):
     None
     """
 
-    frames, labels, testFrames, testLabels = make_dataframes("ProcessedData", WINDOW_SIZE)
     if estimators is None or estimators == 0:
         estimators = int((WINDOW_SIZE * (2 / (math.pi * 1.5))))
         if estimators > 256:
@@ -52,16 +64,25 @@ def fitFirst(modelName: str, estimators: int = None):
 ██╔══╝  ██║   ██║      ██║   ██║██║╚██╗██║██║   ██║    ██╔══╝  ██║██╔══██╗╚════██║   ██║
 ██║     ██║   ██║      ██║   ██║██║ ╚████║╚██████╔╝    ██║     ██║██║  ██║███████║   ██║
 ╚═╝     ╚═╝   ╚═╝      ╚═╝   ╚═╝╚═╝  ╚═══╝ ╚═════╝     ╚═╝     ╚═╝╚═╝  ╚═╝╚══════╝   ╚═╝    
-╚══════ N_ESTIMATORS: {estimators},  WINDOW_SIZE: {WINDOW_SIZE},  DATASIZE: {frames.shape[2]}, NUM_CLASSES = 6
+╚═ N_ESTIMATORS: {estimators},  WINDOW_SIZE: {WINDOW_SIZE},  DATASIZE: {frames.shape[2]}, NUM_LABELS: {len(set(labels))}
 
 """
     )
-    classifier = DrCIF(
-        n_estimators=estimators,
-        att_subsample_size=6,
-        n_jobs=-1,
-        random_state=44,
+
+    # classifier = LSTMFCNClassifier(
+    #     n_epochs=estimators,
+    #     batch_size=50,
+    #     dropout=0.55,
+    #     verbose=0,
+    #     filter_sizes=[64, 128, 256, 128, 64],
+    # )
+    classifier = CNNClassifier(
+        n_epochs=estimators,
+        batch_size=50,
     )
+
+    # classifier = RocketClassifier()
+
     print("Fitting Classifier...")
     classifier.fit(frames, labels)
     global buffer
@@ -69,6 +90,8 @@ def fitFirst(modelName: str, estimators: int = None):
     y_pred = classifier.predict(testFrames)
 
     report = classification_report(testLabels, y_pred)
+    fscoreSupportMicro = precision_recall_fscore_support(testLabels, y_pred, average="micro")
+    ConfusionMatrixDisplay.from_predictions(testLabels, y_pred)
     # print("Predictions:")
     # print(y_pred)
 
@@ -83,12 +106,22 @@ def fitFirst(modelName: str, estimators: int = None):
     print(report)
     os.makedirs(f"./models", exist_ok=True)
 
+    print("\n\nF1 Score, Precision, Recall, Support (Micro):")
+    print(fscoreSupportMicro)
+
     # Freeze the first 20 layers of the model (not sure if this works)
     # layers_to_freeze = 20
     # for layers in classifier.model_.layers[:layers_to_freeze]:
     #    layers.trainable = False
     global mem_bank
-    mem_bank = memorable_bank(training_data=frames, predicted_labels=y_pred, training_labels=labels, confidence_scores=confidence_scores)  # type: ignore
+    mem_bank = memorable_bank(
+        training_data=frames,
+        predicted_labels=y_pred,
+        training_labels=labels,
+        confidence_scores=confidence_scores,
+    )  # type: ignore
+    plt.title(f"First fit of {str(classifier).split('(')[0]}")
+    plt.savefig(f"./pictures/firstfit_{str(classifier).split('(')[0]}.svg", format="svg")
     classifier.save(f"./models/{modelName}")
 
 
@@ -124,11 +157,18 @@ def minimize(frames, tests):
     return frames, tests
 
 
-def learnNewLabel(modelName: str, folderName: str, estimators: int = None):
-    frames, labels, testFrames, testLabels = make_dataframes(folderName, WINDOW_SIZE)
-    framesIncludingBCM, labelsBCM, testFramesIncludingBCM, testLabelsBCM = make_dataframes(
-        "StupidTestData", WINDOW_SIZE
-    )
+@profile
+def learnNewLabel(
+    modelName: str,
+    folderName: str,
+    frames,
+    labels,
+    testFrames,
+    testLabels,
+    testFramesIncludingBCM,
+    testLabelsBCM,
+    estimators=None,
+):
     if estimators is None or estimators == 0:
         estimators = int((WINDOW_SIZE * (2 / (math.pi * 1.5))))
         if estimators > 256:
@@ -141,7 +181,7 @@ def learnNewLabel(modelName: str, folderName: str, estimators: int = None):
 ██╔══██╗██╔══╝  ██╔══╝  ██║   ██║      ██║   ██║██║╚██╗██║██║   ██║
 ██║  ██║███████╗██║     ██║   ██║      ██║   ██║██║ ╚████║╚██████╔╝
 ╚═╝  ╚═╝╚══════╝╚═╝     ╚═╝   ╚═╝      ╚═╝   ╚═╝╚═╝  ╚═══╝ ╚═════╝
-╚══════ N_ESTIMATORS: {N_ESTIMATORS},  WINDOW_SIZE: {WINDOW_SIZE},  DATASIZE: {frames.shape[2]}
+╚═ N_ESTIMATORS: {N_ESTIMATORS},  WINDOW_SIZE: {WINDOW_SIZE},  DATASIZE: {frames.shape[2]}
 """
     )
 
@@ -163,10 +203,14 @@ def learnNewLabel(modelName: str, folderName: str, estimators: int = None):
     frames = np.concatenate((frames, augmented_data), axis=0)
     labels = np.append(labels, labels_for_noisy_data)
     frames, testFramesIncludingBCM = minimize(frames, testFramesIncludingBCM)
+    frames, labels = dataShuffler(frames, labels)
     print("Fitting Classifier...")
     classifier.fit(frames, labels)
     y_pred = classifier.predict(testFramesIncludingBCM)
     report = classification_report(testLabelsBCM, y_pred)
+    fscoreSupportMicro = precision_recall_fscore_support(testLabelsBCM, y_pred, average="micro")
+    ConfusionMatrixDisplay.from_predictions(testLabelsBCM, y_pred)
+
     # print("Predictions:")
     # print(y_pred)
 
@@ -179,9 +223,41 @@ def learnNewLabel(modelName: str, folderName: str, estimators: int = None):
     print("\n\nClassification Report:")
     print(report)
 
+    plt.title(f"Refit of {str(classifier).split('(')[0]}, No Buffer")
+    plt.savefig(f"./pictures/refit_{str(classifier).split('(')[0]}_nobuffer.svg", format="svg")
+    print("\n\nF1 Score, Precision, Recall, Support (Micro):")
+    print(fscoreSupportMicro)
+
     classifier.save(f"./models/{modelName}")
 
 
-fitFirst("minirocket")
-learnNewLabel("minirocket", "NewData")
+def dataShuffler(data, labels):
+    combined = list(zip(data, labels))
+    random.shuffle(combined)
+    shuffledData, shuffledlabels = zip(*combined)
+    shuffledData = np.array(shuffledData)
+    shuffledlabels = np.array(shuffledlabels)
+    return shuffledData, shuffledlabels
+
+
+frames, labels, testFrames, testLabels = make_dataframes("ProcessedData", WINDOW_SIZE)
+profiler = Profiler()
+fitFirst("cnn_buffer", frames, labels, testFrames, testLabels, estimators=50)
+# profiler.stop()
+profiler.start()
+refitFrames, refitLabels, refitTestFrames, refitTestLabels = make_dataframes("NewData", WINDOW_SIZE)
+stupidFrames, stupidLabels, stupidTestFrames, stupidTestLabels = make_dataframes("StupidTestData", WINDOW_SIZE)
+learnNewLabel(
+    "cnn_buffer",
+    "NewData",
+    frames=refitFrames,
+    labels=refitLabels,
+    testFramesIncludingBCM=stupidTestFrames,
+    testLabelsBCM=stupidTestLabels,
+    testFrames=None,
+    testLabels=None,
+    estimators=50,
+)
+profiler.stop()
+profiler.print()
 # prediction("CNN", "ProcessedData")
