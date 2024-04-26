@@ -11,8 +11,8 @@ class pointClass:
 
 
 class clusterClass:
-    def __init__(self, clusterName, clusterCenter, clusterPoints = None):
-        self.clusterName = clusterName
+    def __init__(self, name, clusterCenter, clusterPoints = None):
+        self.name = name
         self.clusterCenter = clusterCenter
         self.clusterPoints = clusterPoints if clusterPoints is not None else []
 
@@ -61,11 +61,12 @@ def overThresholdForNewCalc(newCenter, oldCenter):
     relative_diff = abs_diff / np.maximum(np.abs(newCenter), np.abs(oldCenter)) * 100
 
     # Check if all elements have a difference less than 5%
-    return np.all(relative_diff > 5)
+    return np.any(relative_diff > 5)
 
 def recalculateClusterCenters():
     global clusters
     global iteration
+    thresholdFlag : bool = False
     for c in clusters:
         x = [p.point[0] for p in c.clusterPoints]
         y = [p.point[1] for p in c.clusterPoints]
@@ -73,20 +74,24 @@ def recalculateClusterCenters():
             newCenter = pointClass(point=np.array([sum(x)/len(c.clusterPoints), sum(y)/len(c.clusterPoints)]), name="newCenter")
             if(overThresholdForNewCalc(newCenter.point, c.clusterCenter.point)):
                 c.clusterCenter = newCenter
-                calculatePointsClusterAssociation()
-    for c in clusters:
-        print(c.clusterName)
-        print(f"With center: {c.clusterCenter.point}")
-        for point in c.clusterPoints:
-            print(point.point)
-    print(f"\n\n\nRunning iteration {iteration}")
+                thresholdFlag = True
     iteration = iteration + 1
+    if thresholdFlag:
+        calculatePointsClusterAssociation()
 
 
 
 def calculatePointsClusterAssociation():
+    global clusters
     global points
+    print(f"ITERATION {iteration}")
+    for c in clusters:
+        print(f"cluster {c.name} with points:")
+        for point in c.clusterPoints:
+            print(f"Point: {point.point}, Cluster: {point.cluster.name if not None else 'None'}")
+    print("\n\n\n")
     for p in points:
+        pointSwitchedCluster : bool = False
         pointDistance = math.inf 
         currentChosenCluster = None
         for c in clusters:
@@ -94,37 +99,58 @@ def calculatePointsClusterAssociation():
             if(distanceToCluster < pointDistance):
                 pointDistance = distanceToCluster
                 currentChosenCluster = c
+        if(currentChosenCluster is not p.cluster):
+            pointSwitchedCluster = True
+            print("CLUSTER CHANGE!")
+
+        if(p.cluster is not None):
+            print("\n\n\n CURRENT POINT IN OPERATION:")
+            print(f"point {p.point} with current cluster: {p.cluster.name}")
         newPoint = p
+        print(pointDistance)
+        print(currentChosenCluster.name)
         newPoint.distanceToCenter = pointDistance
         newPoint.cluster = currentChosenCluster
+        if(p.cluster is not None):
+            print("\n\n\n CURRENT POINT IN OPERATION:")
+            print(f"point {p.point} with current cluster: {p.cluster.name}")
+            print(f"newpoint {newPoint.point} with current cluster: {p.cluster.name}")
         for cluster in clusters:
             if(currentChosenCluster is not None):
-                if(currentChosenCluster == cluster):
+                if(cluster.name == p.cluster.name and pointSwitchedCluster):
+                    print("REMOVING OLD POINT")
+                    for idx, n in enumerate(cluster.clusterPoints):
+                        print(f"Checking point with x: {n.point[0]}, y: {n.point[1]} with point with x: {p.point[0]}, y: {p.point[1]}")
+                        if n.point[0] == p.point[0] and n.point[1] == p.point[1]:
+                            print("found point to remove")
+                if(currentChosenCluster.name == cluster.name):
                     foundOne : bool = False
                     for idx, n in enumerate(cluster.clusterPoints):
                         if n == p:
-                            cluster.clusterPoints[idx] == newPoint
+                            cluster.clusterPoints[idx] = newPoint
                             foundOne = True
                     if not foundOne:
                         cluster.clusterPoints.append(p)
+    print(f"END OF ITERATION {iteration}")
+    for c in clusters:
+        print(f"cluster {c.name} with points:")
+        for point in c.clusterPoints:
+            print(f"Point: {point.point}, Cluster: {point.cluster.name if not None else 'None'}")
+    print("\n\n\n")
+
     recalculateClusterCenters()
 
 
 def main():
     global clusters
-    print("\n\n\nINITIALIZING")
     newClusterCenterPoint = pointClass(point=A, name="myFirstCenter")
     newClusterCenterPoint2 = pointClass(point=B, name="mySecondCenter")
-    cluster1 = clusterClass(clusterCenter=newClusterCenterPoint, clusterName="Cluster 1")
-    cluster2 = clusterClass(clusterCenter=newClusterCenterPoint2, clusterName="Cluster 2")
+    cluster1 = clusterClass(clusterCenter=newClusterCenterPoint, name="Cluster 1")
+    cluster2 = clusterClass(clusterCenter=newClusterCenterPoint2, name="Cluster 2")
     clusters.append(cluster1)
     clusters.append(cluster2)
     calculatePointsClusterAssociation()
-    for c in clusters:
-        print(c.clusterName)
-        print(f"With center: {c.clusterCenter.point}")
-        for point in c.clusterPoints:
-            print(point.point)
+
 if __name__ == "__main__":
     main()
 
