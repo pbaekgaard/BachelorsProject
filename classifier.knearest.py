@@ -6,6 +6,9 @@ from sktime.classification.hybrid import HIVECOTEV2
 from sktime.classification.kernel_based import RocketClassifier
 from sktime.classification.deep_learning.cnn import CNNClassifier
 from sktime.classification.distance_based import KNeighborsTimeSeriesClassifier
+from sklearn.metrics import multilabel_confusion_matrix
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+import matplotlib.pyplot as plt
 SAMPLELEN = 900
 
 def get_data_paths(folder_path):
@@ -104,6 +107,11 @@ def fitFirst():
 
     report = classification_report(YTest, y_pred)
     print("Classification Report:\n", report)
+    cm = confusion_matrix(YTest, y_pred)
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=["B", "C", "M"])
+    disp.plot()
+    plt.title("My confusion matrix")
+    plt.show()
 
     classifier.save("./models/KN")
 
@@ -130,5 +138,8 @@ def refit(modelPath : str):
     classifier.save("./models/KN_retrained")
 
 fitFirst()
+
+
+
 
 refit("models/KN.zip")

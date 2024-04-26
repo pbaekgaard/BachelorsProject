@@ -4,6 +4,9 @@ import pandas as pd
 from sklearn.metrics import classification_report
 from sktime.classification.hybrid import HIVECOTEV2
 from sktime.classification.kernel_based import RocketClassifier
+from sklearn.metrics import multilabel_confusion_matrix
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+import matplotlib.pyplot as plt
 
 SAMPLELEN = 900
 
@@ -104,4 +107,13 @@ print(f"Probabilities from guess: \n {y_predproba}")
 print(f"Actual: \n {YTest}")
 
 report = classification_report(YTest, y_pred)
+
 print("Classification Report:\n", report)
+
+
+print("Classification Report:\n", report)
+cm = confusion_matrix(YTest, y_pred)
+disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=["B", "C", "M"])
+disp.plot()
+plt.title("My confusion matrix")
+plt.show()

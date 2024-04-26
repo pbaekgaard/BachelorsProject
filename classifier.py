@@ -5,6 +5,12 @@ from sklearn.metrics import classification_report
 from sktime.classification.hybrid import HIVECOTEV2
 from sktime.classification.kernel_based import RocketClassifier
 from sktime.classification.deep_learning.cnn import CNNClassifier
+from sklearn.metrics import multilabel_confusion_matrix
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+import matplotlib.pyplot as plt
+
+
+
 SAMPLELEN = 900
 
 def get_data_paths(folder_path):
@@ -87,9 +93,11 @@ def load_data(file_path, typeOfData):
 print("Loading data..\n")
 XTest, YTest = load_data("ProcessedData", "Test")
 
+print(XTest)
+
 XTrain, YTrain = load_data("ProcessedData", "Training")
 
-classifier = CNNClassifier(n_epochs=50, verbose=True)
+classifier = RocketClassifier(rocket_transform="minirocket")
 
 print("Fitting Classifier..\n")
 classifier.fit(XTrain, YTrain)
@@ -102,6 +110,18 @@ print(f"Probabilities from guess: \n {y_predproba}")
 print(f"Actual: \n {YTest}")
 
 report = classification_report(YTest, y_pred)
+
+
+
 print("Classification Report:\n", report)
+print("hej")
+
+
 
 classifier.save("./models/CNN")
+
+cm = confusion_matrix(YTest, y_pred)
+disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=["B", "C", "M"])
+disp.plot()
+plt.title("My confusion matrix")
+plt.show()
