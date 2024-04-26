@@ -1,3 +1,4 @@
+#! /usr/bin/python3
 from mpl_toolkits.mplot3d import Axes3D
 import os
 import numpy as np
@@ -28,6 +29,7 @@ E = np.array([2, 3])
 F = np.array([4, 4])
 G = np.array([3, 20])
 H = np.array([6, 4])
+I = np.array([30, 70])
 
 
 #C = np.array([[1, 4, 5, 12], 
@@ -64,11 +66,11 @@ point5 = pointClass(E, Cluster11,"Point5")
 point6 = pointClass(F, Cluster22,"Point6")
 point7 = pointClass(G, Cluster11,"Point7")
 point8 = pointClass(H, Cluster22,"Point8")
+point9 = pointClass(I, Cluster22,"Point9")
 
 
 
-
-points = [point1,point2,point3,point4,point5,point6,point7,point8]
+points = [point1,point2,point3,point4,point5,point6,point7,point8, point9]
 
 clusters = [Cluster11,Cluster22]
 
@@ -97,22 +99,6 @@ plt.show()
 def distance(v1, v2):
     return np.sqrt(np.sum((v1 - v2) ** 2))  
 
-def distanceToCluster():
-    storedDistance = 10000000000
-    for p in points:
-        for c in clusters:
-            d = distance(c.clusterPoint,p.point)
-         #   print("distance= "+str(d))
-            #print("stored= "+str(storedDistance))
-            if(d<=storedDistance):
-              
-                p.cluster = c
-                storedDistance = d
-        storedDistance = 1000000000
-    recalc()
-           
-
-#recompute the centroid for each cluster
 
 
 def recalc():
@@ -134,9 +120,9 @@ def recalc():
             newclusters.append(clusterNew)
           
             if(distance(clusterNew.clusterPoint,c.clusterPoint) > 0):
+                
                 clusters = newclusters
                 #distance recalc
-
                 distanceToCluster()
             else:
                 print("tomt")
@@ -147,25 +133,50 @@ def recalc():
 
 
 #run recalc
+def distanceToCluster():
+    storedDistance = 999999999999
+    for p in points:
+        for c in clusters:
+            d = distance(c.clusterPoint,p.point)
+            if(d<=storedDistance):
+                print(f"{p.name} had cluster {p.cluster.clusterPoint} before...") 
+                p.cluster = c
+                storedDistance = d
+                print(f"{p.name} has gotten cluster {p.cluster.clusterPoint} after...")
+        storedDistance = 99999999
+    recalc()       
 
-for p in points:
-    print("--------")
-    print(p.name)
-    print(p.cluster.clusterName)
-    print("--------")
+#recompute the centroid for each cluster
 
-distanceToCluster()
+def main():
+    for p in points:
+        print("--------")
+        print(p.name)
+        print(p.cluster.clusterName)
+        print("--------")
 
-print("1 iteration")
-#1 iteration
-for p in points:
-    print("--------")
-    print(p.name)
-    print(p.cluster.clusterName)
-    print("--------")
 
-          
-   
+    print("1 iteration")
+    print("All clusters currently:")
+    for c in clusters:
+        print(c.clusterPoint)
+    print("\n\n\n\n\n\n\n\n")
+    distanceToCluster()
+    print("All clusters currently:")
+    for c in clusters:
+        print(c.clusterPoint)
+    print("\n\n\n\n\n\n\n\n")
+
+    #1 iteration
+    for p in points:
+        print("--------")
+        print(p.name)
+        print(p.cluster.clusterName)
+        print("--------")
+
+              
+if __name__ == "__main__":
+    main()
 
 
 
