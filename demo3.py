@@ -4,6 +4,8 @@ import pickle
 import os
 from mpl_toolkits.mplot3d import Axes3D
 
+out_points = [] # Global variable for all points that are not inside a cluster
+
 class Point:
     def __init__(self, xy, label = None, isIn = False):
         self.xy = xy
@@ -11,7 +13,7 @@ class Point:
         self.isIn = isIn
 
 class Cluster:
-    def __init__(self, xy, label,radius):
+    def __init__(self, xy, label, radius):
         self.xy = xy
         self.label = label
         self.radius = radius
@@ -62,7 +64,6 @@ def update_centroids(points, clusters, k):
     return new_centroids
 
 def setRadius(centroids,points):
-    print("hej")
     for c in centroids:
         longestDistance = 0
         for p in points:
@@ -78,12 +79,12 @@ def calcInOuts(centroids,points):
         for p in points:
            if(p.label == c.label):
                 distance = findSingleDistance(c,p)
-                if(distance>c.radius):
+                if(distance > c.radius):
                     p.isIn = False
 
-def calcInOutsNewPoint(centroids,point):
+def calcInOutsNewPoint(centroids, point):
     for c in centroids:
-        distance = findSingleDistance(c,point)
+        distance = findSingleDistance(c, point)
         shortestDistance = None
         if(distance<c.radius and ((shortestDistance == None ) or distance<shortestDistance  )):
             point.label = c.label
@@ -92,7 +93,7 @@ def calcInOutsNewPoint(centroids,point):
 
     return point
 
-def kmeans(points, k, max_iters=100):
+def kmeans(points, k, centroids, clusters, max_iters=100):
     """Computes k-means clustering using the Cluster class for centroids"""
     centroids = initialize_centroids(points, k)
     #print(centroids)  # This will print Cluster objects;
@@ -112,9 +113,37 @@ def kmeans(points, k, max_iters=100):
 
     return centroids, clusters
 
+# New points added
 
-# Hardcoded points using the Point class
+def kmeansAdd(_centroids, _clusters, _new_point, max_iters=100):
+    temp_points_arr = [ _new_point ]
 
+    for centroid in _centroids:
+        if _new_point.label == centroid.label:
+            temp_points_arr.append(centroid)
+            break
+
+    for _ in range(max_iters):
+        new_centroids = update_centroids(_new_point, _clusters, len(_centroids))
+        
+        pass
+    
+    pass
+
+
+
+def addNewPoint(_centroids, _new_point, _clusters):
+    _new_point = calcInOutsNewPoint(_centroids, _new_point)
+
+    if _new_point.isIn == False:
+        out_points.append(_new_point)
+    else:
+        _centroids, _clusters = kmeansAdd(_centroids, _clusters, _new_point)
+
+    return _centroids, _clusters
+    
+
+# Main calls
 
 def findK(points):
     foundKs = []
@@ -169,20 +198,17 @@ def plotData(centroids, clusters, k, points):
     plt.show()
 
 def initSetup(points, k):
-    centroids, clusters = kmeans(points, k)
+    centroids, clusters = kmeans(points, k, [], [])
     setRadius(centroids, points)
     calcInOuts(centroids, points)
-
-    out_points = []
 
     for point in points:
         if point.isIn == False:
             out_points.append(point)
 
-    return centroids, clusters, out_points
+    return centroids, clusters
 
 def saveModel(centroids, clusters, out_points):
-    print("Saving...")
     with open('model_data.pkl', 'wb') as f:
         pickle.dump((centroids, clusters, out_points), f)
     
@@ -206,18 +232,29 @@ def main():
     Point(xy=np.array([7.2, 7.1, 7.0]), label="B", isIn=True)
     ]
     
+    new_point = Point(xy=np.array([1, 1.9, 1.1]))
+
     if not os.path.exists("model_data.pkl"):
         k = findK(points) # Number of clusters/labels 
-        print(k)
-        centroids, clusters, out_points = initSetup(points, k)
+        centroids, clusters = initSetup(points, k)
+
+        print("Saving...")
         saveModel(centroids, clusters, out_points)
     else:
         print("Loading...")
         centroids, clusters, out_points = loadModel()
         k = len(centroids)
         
-    # new_point = Point(xy=np.array([10, 10, 10]))
-    # centroids, clusters = NewPointsEnator(new_point, centroids, clusters)
+        centroids, clusters = addNewPoint(centroids, new_point, clusters)
+        print(centroids)
+        print("Saving...")
+        saveModel(centroids, clusters, out_points)
+        
+
+    # 0) Plot new point
+    # 1) Implement threshold for amount of new points to create cluster and threshold for single point radius to check for points inside to know if it is within the same cluster 
+    # 2) Is new point already in a cluster (d <= r -> calcInOut())
+    # 3) Save model with new point added to out_points[]
 
     plotData(centroids, clusters, k, out_points) # Visualize the clusters
     
