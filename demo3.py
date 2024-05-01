@@ -1,13 +1,14 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import pickle
+import os
 from mpl_toolkits.mplot3d import Axes3D
 
 class Point:
-    def __init__(self, xy, label, isIn):
+    def __init__(self, xy, label = None, isIn = False):
         self.xy = xy
         self.label = label
         self.isIn = isIn
-
 
 class Cluster:
     def __init__(self, xy, label,radius):
@@ -24,7 +25,6 @@ def initialize_centroids(points, k):
     
     return centroids
 
-
 def findDistances(centroids, point):
     """Calculate the Euclidean distance from a given point to all centroids."""
     centroids_np = np.array([centroid.xy for centroid in centroids])
@@ -34,7 +34,6 @@ def findDistances(centroids, point):
 def findSingleDistance(centroid, point):
     """Calculate the Euclidean distance""" 
     return np.sqrt(np.sum((point.xy - centroid.xy)**2))
-
 
 def assign_clusters(points, centroids):
     """Assigns each point to the closest centroid"""
@@ -82,9 +81,6 @@ def calcInOuts(centroids,points):
                 if(distance>c.radius):
                     p.isIn = False
 
-
-
-
 def calcInOutsNewPoint(centroids,point):
     for c in centroids:
         distance = findSingleDistance(c,point)
@@ -95,22 +91,11 @@ def calcInOutsNewPoint(centroids,point):
             shortestDistance = distance
 
     return point
-    
-        
-       
-            
-            
-            
-        
-        
-
-            
-
 
 def kmeans(points, k, max_iters=100):
     """Computes k-means clustering using the Cluster class for centroids"""
     centroids = initialize_centroids(points, k)
-    print(centroids)  # This will print Cluster objects; you might want to print more informative details
+    #print(centroids)  # This will print Cluster objects;
 
     for _ in range(max_iters):
         clusters = assign_clusters(points, centroids)
@@ -138,10 +123,10 @@ def findK(points):
             foundKs.append(p.label)
     
     return len(foundKs)
-        
-       
+
 def plotData(centroids, clusters, k, points):
-    colors = ['r', 'g']  # Ensure enough colors for the number of clusters, add more if needed
+    cluster_colors = ['r', 'g']  # Cluster colors
+    unassigned_color = 'b'  # Color for unassigned points
 
     fig = plt.figure(figsize=(10, 8))
     ax = fig.add_subplot(111, projection='3d')
@@ -150,25 +135,31 @@ def plotData(centroids, clusters, k, points):
     ax.set_zlim([-3, 20])
     ax.set_aspect('equal')
 
+    # Plot unassigned points first
+    unassigned_points = [points[j] for j in range(len(points)) if clusters[j] == -1]
+    for point in unassigned_points:
+        ax.scatter(point.xy[0], point.xy[1], point.xy[2], s=30, color=unassigned_color)
+        ax.text(point.xy[0], point.xy[1], point.xy[2], f' {point.isIn}', color=unassigned_color)
+
     for i in range(k):
         # Collect points assigned to the current cluster
         cluster_points = [points[j] for j in range(len(points)) if clusters[j] == i]
-        
+
         # Plot points in 3D and annotate them with isIn
         for point in cluster_points:
-            ax.scatter(point.xy[0], point.xy[1], point.xy[2], s=30, color=colors[i])
-            ax.text(point.xy[0], point.xy[1], point.xy[2], f' {point.isIn}', color=colors[i])
+            ax.scatter(point.xy[0], point.xy[1], point.xy[2], s=30, color=cluster_colors[i])
+            ax.text(point.xy[0], point.xy[1], point.xy[2], f' {point.isIn}', color=cluster_colors[i])
 
         # Plot centroids in 3D
         centroid_coords = centroids[i].xy
-        ax.scatter(centroid_coords[0], centroid_coords[1], centroid_coords[2], s=100, color=colors[i], marker='x', edgecolor='k', linewidths=2)
+        ax.scatter(centroid_coords[0], centroid_coords[1], centroid_coords[2], s=100, color=cluster_colors[i], marker='o', edgecolor='k', linewidths=2)
 
         # Plot sphere around the centroid
         u, v = np.mgrid[0:2*np.pi:100j, 0:np.pi:50j]
         x = centroid_coords[0] + centroids[i].radius * np.cos(u) * np.sin(v)
         y = centroid_coords[1] + centroids[i].radius * np.sin(u) * np.sin(v)
         z = centroid_coords[2] + centroids[i].radius * np.cos(v)
-        ax.plot_wireframe(x, y, z, color=colors[i], alpha=0.1)
+        ax.plot_wireframe(x, y, z, color=cluster_colors[i], alpha=0.1)
 
     ax.set_title('3D K-Means Clustering with Point and Cluster Classes')
     ax.set_xlabel('X Coordinate')
@@ -177,10 +168,31 @@ def plotData(centroids, clusters, k, points):
     ax.legend([f'Cluster {i+1} - {centroids[i].label}' for i in range(k)])
     plt.show()
 
+def initSetup(points, k):
+    centroids, clusters = kmeans(points, k)
+    setRadius(centroids, points)
+    calcInOuts(centroids, points)
 
+    out_points = []
+
+    for point in points:
+        if point.isIn == False:
+            out_points.append(point)
+
+    return centroids, clusters, out_points
+
+def saveModel(centroids, clusters, out_points):
+    print("Saving...")
+    with open('model_data.pkl', 'wb') as f:
+        pickle.dump((centroids, clusters, out_points), f)
+    
+def loadModel():
+    with open('model_data.pkl', 'rb') as f:
+        _centroids, _clusters, _points = pickle.load(f)
+
+    return _centroids, _clusters, _points
 
 def main():
-
     points = [
     Point(xy=np.array([1.5, 1.8, 1.2]), label="A", isIn=True),
     Point(xy=np.array([1.0, 2.0, 1.0]), label="A", isIn=True),
@@ -192,21 +204,22 @@ def main():
     Point(xy=np.array([1.8, 7.2, 6.7]), label="B", isIn=True),
     Point(xy=np.array([1.0, 6.5, 6.9]), label="B", isIn=True),
     Point(xy=np.array([7.2, 7.1, 7.0]), label="B", isIn=True)
-]
+    ]
     
-    k = findK(points) # Number of clusters 
-    centroids, clusters = kmeans(points, k)
-    setRadius(centroids,points)
-    calcInOuts(centroids,points)
-    newp = Point(xy=np.array([10, 10, 10]), label="C", isIn=False)
-    p = calcInOutsNewPoint(centroids,newp)
+    if not os.path.exists("model_data.pkl"):
+        k = findK(points) # Number of clusters/labels 
+        print(k)
+        centroids, clusters, out_points = initSetup(points, k)
+        saveModel(centroids, clusters, out_points)
+    else:
+        print("Loading...")
+        centroids, clusters, out_points = loadModel()
+        k = len(centroids)
+        
+    # new_point = Point(xy=np.array([10, 10, 10]))
+    # centroids, clusters = NewPointsEnator(new_point, centroids, clusters)
 
-    clusters.append(0)
-    points.append(p)
-    plotData(centroids, clusters,k,points)
+    plotData(centroids, clusters, k, out_points) # Visualize the clusters
     
-
-
-    print("hej")
 if __name__ == "__main__":
     main()
