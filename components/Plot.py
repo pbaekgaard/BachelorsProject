@@ -4,7 +4,7 @@ import numpy as np
 
 
 def plotData(centroids, clusters, k, points):
-    cluster_colors = ["r", "g"]  # Cluster colors
+    cluster_colors = ["r", "g", "m"]  # Cluster colors
     unassigned_color = "b"  # Color for unassigned points
 
     fig = plt.figure(figsize=(10, 8))
