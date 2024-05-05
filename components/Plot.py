@@ -9,9 +9,9 @@ def plotData(centroids, clusters, k, points):
 
     fig = plt.figure(figsize=(10, 8))
     ax = fig.add_subplot(111, projection="3d")
-    ax.set_xlim([-3, 20])
-    ax.set_ylim([-3, 20])
-    ax.set_zlim([-3, 20])
+    ax.set_xlim([-3, 25])
+    ax.set_ylim([-3, 25])
+    ax.set_zlim([-3, 25])
     ax.set_aspect("equal")
 
     # Plot unassigned points first
