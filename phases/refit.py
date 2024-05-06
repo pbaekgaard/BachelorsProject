@@ -2,9 +2,11 @@ import numpy as np
 import glob
 from components.Objects import Point, Cluster
 from components.Distance import findSingleDistance
+
 TRESH = 1
 FoundInPoints = []
 newClusterPointThreshold = 5
+
 
 def CheckIfOutpointsContainsInPoints(centroids):
     glob.out_points = glob.out_points[::-1]
@@ -34,26 +36,28 @@ def Recalibrate(_centroids):
     centroids[centroidIndex].xy = np.mean([centroids[centroidIndex].xy, foundPoint.xy], axis=0)
     return centroids
 
+
 def find_most_centered(close_points):
-  """
-  Finds the most centered point among the given close points.
+    """
+    Finds the most centered point among the given close points.
 
-  Args:
-      close_points: A list of 5 close points.
+    Args:
+        close_points: A list of 5 close points.
 
-  Returns:
-      The most centered point.
-  """
+    Returns:
+        The most centered point.
+    """
 
-  # Calculate center of mass (excluding current point)
-  center_of_mass = np.mean(close_points[:-1], axis=0)
+    # Calculate center of mass (excluding current point)
+    center_of_mass = np.mean(close_points[:-1], axis=0)
 
-  # Calculate distances to center of mass
-  distances = np.linalg.norm(close_points - center_of_mass, axis=1)
+    # Calculate distances to center of mass
+    distances = np.linalg.norm(close_points - center_of_mass, axis=1)
 
-  # Find the point with minimum distance
-  index = np.argmin(distances)
-  return index
+    # Find the point with minimum distance
+    index = np.argmin(distances)
+    return index
+
 
 def newClusterCreated():
     point_coordinates = [point.xy for point in glob.out_points]
@@ -65,33 +69,49 @@ def newClusterCreated():
         if len(close_points) == 5:
             centerpoint_index = find_most_centered(close_points)
             close_points_indices = np.unique(np.where(np.isin(points_array, close_points))[0])
-            print(close_points_indices)
             newCluster = Cluster(xy=glob.out_points[centerpoint_index].xy, label="idk", radius=5)
             for index in close_points_indices[::-1]:
                 del glob.out_points[index]
             return True, newCluster
     return False, None
 
+
+def CheckInCluster(centroids, point=None):
+    if point is not None:
+        for centroid in centroids:
+            distance = findSingleDistance(point, centroid)
+            if distance < centroid.radius:
+                return (True, centroid.label)
+    return (False, "No cluster found")
+
+
 def Refit(_centroids, new_point=None):
     centroids = _centroids
     # Check if there is a new point for the refit
-    
-    if new_point is not None and checkPointInOutpoints(new_point) is False:
-        print(f"Currently working with point: {new_point.xy}")
+    newCluster = None
+    # Check if point is inside any cluster
+    pointIsInCluster = False
+    clusterLabel = None
+    (pointIsInCluster, clusterLabel) = CheckInCluster(centroids, new_point)
+    if new_point is not None and checkPointInOutpoints(new_point) is False and not pointIsInCluster:
         glob.out_points.append(new_point)
     # Check if there is any points that are in any centroid
     while CheckIfOutpointsContainsInPoints(centroids):
         centroids = Recalibrate(centroids)
-    
+
     # If a new cluster is created from multiple close outpoints, rerun Refit
     if len(glob.out_points) >= newClusterPointThreshold:
         newClusterWasCreated, newCluster = newClusterCreated()
-        if(newClusterWasCreated):
+        if newClusterWasCreated:
             # Add new clustercenter to centroids array
             centroids.append(newCluster)
             # Rerun refit
             Refit(centroids)
+    # If the point is in a cluster, print out the cluster label
+    if pointIsInCluster:
+        print("Point is in cluster: ", clusterLabel)
     return centroids
+
 
 def checkPointInOutpoints(newPoint):
     foundOne = False
@@ -99,8 +119,9 @@ def checkPointInOutpoints(newPoint):
         foundOne = checkPointWithNewPoint(point, newPoint)
         if foundOne:
             return True
-    
+
     return False
+
 
 def checkPointWithNewPoint(point, newPoint):
     for i in range(len(point.xy)):

@@ -107,6 +107,7 @@ def findK(points):
 
     return len(foundKs)
 
+
 def initSetup(points, k):
     centroids, clusters = kmeans(points, k, [], [])
     setRadius(centroids, points)
@@ -117,6 +118,7 @@ def initSetup(points, k):
             glob.out_points.append(point)
 
     return centroids, clusters
+
 
 def Initialize(points):
     k = findK(points)  # Number of clusters/labels

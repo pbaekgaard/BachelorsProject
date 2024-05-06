@@ -9,6 +9,7 @@ from components.Plot import plotData
 import glob
 from components.Transformer import transform
 
+
 def saveModel(centroids, clusters, out_points):
     with open("model_data.pkl", "wb") as f:
         pickle.dump((centroids, clusters, glob.out_points), f)
@@ -49,17 +50,12 @@ def main():
 
         print("Saving...")
         saveModel(centroids, clusters, glob.out_points)
-        print(f"number of outpoints from inside main before refit: {len(glob.out_points)}")
     else:
         print("Loading...")
         centroids, clusters, glob.out_points = loadModel()
-        print(f"Number of out_points from inside main, after load existing model: {len(glob.out_points)}")
-        print(f"Number of centroids pre refit: {len(centroids)}")
         for currPoint in newPoints:
             centroid = Refit(_centroids=centroids, new_point=currPoint)
         # centroid = Refit(centroids, new_point)
-        print(len(glob.out_points))
-        print(f"Number of centroids after refit: {len(centroid)}")
         print("Saving...")
         saveModel(centroids, clusters, glob.out_points)
 
