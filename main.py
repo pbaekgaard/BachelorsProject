@@ -6,8 +6,11 @@ from phases.init import Initialize
 from phases.refit import Refit
 from components.Objects import Point
 from components.Plot import plotData
+from components.Makedataframes import make_dataframes
 import glob
 from components.Transformer import transform
+
+WINDOW_SIZE = 200
 
 def saveModel(centroids, clusters, out_points):
     with open("model_data.pkl", "wb") as f:
@@ -23,6 +26,9 @@ def loadModel():
 
 def main():
     glob.init()
+
+    frames, labels, testFrames, testLabels = make_dataframes("newData/Accel", WINDOW_SIZE)
+    print(labels)
     points = [
         Point(xy=np.array([1.5, 1.8, 1.2]), label="A", isIn=True),
         Point(xy=np.array([1.0, 2.0, 1.0]), label="A", isIn=True),
