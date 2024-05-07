@@ -3,16 +3,7 @@ from components.Distance import findDistances, findSingleDistance
 import numpy as np
 import globalvars
 
-RAD = 250
-
-# def initialize_centroids(points, k):
-#     """Randomly selects k points as initial centroids"""
-#     selected_indices = np.random.choice(len(points), k, replace=False)
-#     centroids = []
-#     for i in selected_indices:
-#         centroids.append(Cluster(xy=points[i].xy, label=points[i].label, radius=0))
-
-#     return centroids
+RAD = 1
 
 
 def initialize_centroids(points, k):
@@ -27,7 +18,7 @@ def initialize_centroids(points, k):
             raise ValueError(f"No points with label {label}")
 
         selected_point = np.random.choice(label_points)
-        centroids.append(Cluster(xy=selected_point.xy, label=selected_point.label, radius=0))
+        centroids.append(Cluster(xy=selected_point.xy, label=selected_point.label, radius=RAD))
 
     # If k is greater than the number of unique labels, raise a ValueError
     if k > len(centroids):
@@ -59,12 +50,12 @@ def update_centroids(points, clusters, k):
             new_centroid_xy = np.mean(cluster_points, axis=0)
             # Assume the label of the new centroid to be the same as the label of the first point in the cluster
             centroid_label = cluster_labels[0]
-            new_centroids.append(Cluster(xy=new_centroid_xy, label=centroid_label, radius=0))
+            new_centroids.append(Cluster(xy=new_centroid_xy, label=centroid_label, radius=RAD))
         else:
             # If no points are in this cluster, we can use the old centroid if necessary:
             # You'll need to decide how to handle this case depending on your application requirements.
             # For now, it just adds a dummy centroid with a default location and label, which should be handled more robustly in production code.
-            new_centroids.append(Cluster(xy=np.zeros_like(points[0].xy), label="No Cluster", radius=0))
+            new_centroids.append(Cluster(xy=np.zeros_like(points[0].xy), label="No Cluster", radius=RAD))
     return new_centroids
 
 
