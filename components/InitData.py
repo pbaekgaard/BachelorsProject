@@ -14,11 +14,6 @@ def InitData(path: str, WINDOW_SIZE: int):
     data = Transform(data)
     points = []
     for idx, dat in enumerate(data):
-        coords = []
-        for coord in dat:
-            if coord == 22:
-                break
-            coords.append(dat[coord][0])
-        point = Point(xy=coords, label=labels[idx])
+        point = Point(xy=dat, label=labels[idx])
         points.append(point)
     return points

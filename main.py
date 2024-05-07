@@ -35,10 +35,11 @@ def main():
         saveModel(centroids, clusters, globalvars.out_points)
         print(f"number of outpoints from inside main before refit: {len(globalvars.out_points)}")
     else:
-        print("Loading...")
+        print("Loading Existing Model Data...")
         centroids, clusters, globalvars.out_points = loadModel()
         print(f"Number of out_points from inside main, after load existing model: {len(globalvars.out_points)}")
         print(f"Number of centroids pre refit: {len(centroids)}")
+        newPoints = InitData("NewData", WINDOW_SIZE)
         for currPoint in newPoints:
             centroid = Refit(_centroids=centroids, new_point=currPoint)
         # centroid = Refit(centroids, new_point)
@@ -52,7 +53,11 @@ def main():
     # 2) Is new point already in a cluster (d <= r -> calcInOut())
     # 3) Save model with new point added to globalvars.out_points[]
 
-    plotData(centroids, clusters, len(centroids), points)  # Visualize the clusters
+    # plotData(centroids, clusters, len(centroids), points)  # Visualize the clusters
+    print("STATUS REPORT:")
+    print(f"Number of centroids: {len(centroids)}")
+    for idx, c in enumerate(centroids):
+        print(f"Centroid {idx+1}: {c.label}")
 
 
 if __name__ == "__main__":

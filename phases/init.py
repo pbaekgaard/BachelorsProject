@@ -3,7 +3,7 @@ from components.Distance import findDistances, findSingleDistance
 import numpy as np
 import globalvars
 
-RAD = 0
+RAD = 250
 
 # def initialize_centroids(points, k):
 #     """Randomly selects k points as initial centroids"""
@@ -27,7 +27,7 @@ def initialize_centroids(points, k):
             raise ValueError(f"No points with label {label}")
 
         selected_point = np.random.choice(label_points)
-        centroids.append(Cluster(xy=selected_point.xy, label=selected_point.label, radius=RAD))
+        centroids.append(Cluster(xy=selected_point.xy, label=selected_point.label, radius=0))
 
     # If k is greater than the number of unique labels, raise a ValueError
     if k > len(centroids):
@@ -59,17 +59,16 @@ def update_centroids(points, clusters, k):
             new_centroid_xy = np.mean(cluster_points, axis=0)
             # Assume the label of the new centroid to be the same as the label of the first point in the cluster
             centroid_label = cluster_labels[0]
-            new_centroids.append(Cluster(xy=new_centroid_xy, label=centroid_label, radius=RAD))
+            new_centroids.append(Cluster(xy=new_centroid_xy, label=centroid_label, radius=0))
         else:
             # If no points are in this cluster, we can use the old centroid if necessary:
             # You'll need to decide how to handle this case depending on your application requirements.
             # For now, it just adds a dummy centroid with a default location and label, which should be handled more robustly in production code.
-            new_centroids.append(Cluster(xy=np.zeros_like(points[0].xy), label="No Cluster", radius=RAD))
+            new_centroids.append(Cluster(xy=np.zeros_like(points[0].xy), label="No Cluster", radius=0))
     return new_centroids
 
 
 def setRadius(centroids, points):
-    newCentroids = []
     for c in centroids:
         longestDistance = 0
         for p in points:
@@ -81,8 +80,6 @@ def setRadius(centroids, points):
                     longestDistance = distance
                 """set the radius"""
         c.radius = longestDistance
-        newCentroids.append(c)
-    return newCentroids
 
 
 def calcInOuts(centroids, points):
@@ -114,7 +111,7 @@ def kmeans(points, k, centroids, clusters, max_iters=100):
     for _ in range(max_iters):
         clusters = assign_clusters(points, centroids)
         new_centroids = update_centroids(points, clusters, k)
-        new_centroids = setRadius(new_centroids, points)
+
         # Convert centroids to an array for comparison
         old_centroids_array = np.array([centroid.xy for centroid in centroids])
         new_centroids_array = np.array([centroid.xy for centroid in new_centroids])
@@ -148,7 +145,7 @@ def findK(points):
 def initSetup(points, k):
     centroids, clusters = kmeans(points, k, [], [])
     print(k)
-    centroids = setRadius(centroids, points)
+    setRadius(centroids, points)
     calcInOuts(centroids, points)
 
     for point in points:

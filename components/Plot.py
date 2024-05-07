@@ -44,7 +44,7 @@ def plotData(centroids, clusters, k, points):
 
         # Plot sphere around the centroid
         u, v = np.mgrid[0 : 2 * np.pi : 100j, 0 : np.pi : 50j]
-        x = centroid_coords[0] + centroids[i].radius * np.cos(u) * np.sin(v)
+        x = centroid_coords[0][np.newaxis, :] + centroids[i].radius * np.cos(u) * np.sin(v)
         y = centroid_coords[1] + centroids[i].radius * np.sin(u) * np.sin(v)
         z = centroid_coords[2] + centroids[i].radius * np.cos(v)
         ax.plot_wireframe(x, y, z, color=cluster_colors[i], alpha=0.1)
