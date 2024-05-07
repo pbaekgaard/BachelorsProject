@@ -1,9 +1,10 @@
+from itertools import groupby
 from components.Objects import Cluster, Point
 from components.Distance import findDistances, findSingleDistance
 import numpy as np
 import globalvars
 
-RAD = 1
+RAD = 5
 
 
 def initialize_centroids(points, k):
@@ -35,6 +36,7 @@ def assign_clusters(points, centroids):
     clusters = []
     for point in points:
         distances = findDistances(centroids, point)
+        print(distances[0])
         closest_centroid_index = np.argmin(distances)
         clusters.append(closest_centroid_index)
     return clusters
@@ -44,17 +46,19 @@ def update_centroids(points, clusters, k):
     """Updates centroids by computing the mean of assigned points and updates using Cluster class"""
     new_centroids = []
     for i in range(k):
-        cluster_points = np.array([points[j].xy for j in range(len(points)) if clusters[j] == i])
-        cluster_labels = np.array([points[j].label for j in range(len(points)) if clusters[j] == i])
+        cluster_points = []
+        cluster_labels = []
+        for j in range(len(points)):
+            if clusters[j] == i:
+                cluster_points.append(points[j].xy)
+                cluster_labels.append(points[j].label)
+        cluster_points = np.array(cluster_points)
+        cluster_labels = np.array(cluster_labels)
         if len(cluster_points) > 0:
             new_centroid_xy = np.mean(cluster_points, axis=0)
-            # Assume the label of the new centroid to be the same as the label of the first point in the cluster
             centroid_label = cluster_labels[0]
             new_centroids.append(Cluster(xy=new_centroid_xy, label=centroid_label, radius=RAD))
         else:
-            # If no points are in this cluster, we can use the old centroid if necessary:
-            # You'll need to decide how to handle this case depending on your application requirements.
-            # For now, it just adds a dummy centroid with a default location and label, which should be handled more robustly in production code.
             new_centroids.append(Cluster(xy=np.zeros_like(points[0].xy), label="No Cluster", radius=RAD))
     return new_centroids
 
@@ -147,6 +151,23 @@ def initSetup(points, k):
 
 
 def Initialize(points):
-    k = findK(points)  # Number of clusters/labels
-    centroids, clusters = initSetup(points, k)
-    return k, centroids, clusters
+    centroids = []
+    points.sort(key=lambda point: point.label)
+    for label, group in groupby(points, key=lambda point: point.label):
+        group = list(group)
+        centroid_point = np.mean([point.xy for point in group], axis=0)
+
+        # Calculate the radius of the cluster by finding the maximum distance from the centroid to any point in the cluster
+        distancesFromCentroid = findDistances(centroids=group, point=Point(xy=centroid_point, label=label))
+        radius = np.mean(distancesFromCentroid, axis=0)
+        print(f"Radius: {radius}")
+        group = list(group)
+        centroid = Cluster(xy=centroid_point, label=label, radius=radius)
+        centroids.append(centroid)
+    return centroids
+
+
+# def Initialize(points):
+#     k = findK(points)  # Number of clusters/labels
+#     centroids, clusters = initSetup(points, k)
+#     return k, centroids, clusters

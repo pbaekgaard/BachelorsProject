@@ -13,7 +13,7 @@ def Transform(data_sequences):
         flattenedData = dataSeq.T
         transformedData = []
         for flatDat in flattenedData:
-            features = Catch22(flatDat)["values"]
+            features = Catch22(flatDat, True)["values"]
             transformedData.append(features)
 
         transformedData = np.array(transformedData)

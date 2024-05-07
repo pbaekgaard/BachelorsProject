@@ -1,14 +1,16 @@
 import numpy as np
 import globalvars
 from components.Objects import Point, Cluster
-from components.Distance import findSingleDistance
+from components.Distance import findSingleDistance, findDistances
 
-TRESH = 1
+TRESH = 2
 FoundInPoints = []
 newClusterPointThreshold = 5
+outpointsfails = 0
 
 
 def CheckIfOutpointsContainsInPoints(centroids):
+    global outpointsfails
     globalvars.out_points = globalvars.out_points[::-1]
     for idx, point in enumerate(globalvars.out_points):
         for centroid in centroids:
@@ -16,6 +18,7 @@ def CheckIfOutpointsContainsInPoints(centroids):
             if distance < centroid.radius:
                 FoundInPoints.append((point, centroid))
                 globalvars.out_points.pop(idx)
+                outpointsfails = outpointsfails + 1
                 return True
     return False
 
@@ -69,8 +72,15 @@ def newClusterCreated():
         if len(close_points) == 5:
             centerpoint_index = find_most_centered(close_points)
             close_points_indices = np.unique(np.where(np.isin(points_array, close_points))[0])
-            print(close_points_indices)
-            newCluster = Cluster(xy=globalvars.out_points[centerpoint_index].xy, label="idk", radius=5)
+            points_close_to_centroid = []
+            for idx in close_points_indices:
+                points_close_to_centroid.append(globalvars.out_points[idx])
+            radius = max(
+                findDistances(
+                    centroids=points_close_to_centroid, point=Point(xy=globalvars.out_points[centerpoint_index].xy)
+                )
+            )
+            newCluster = Cluster(xy=globalvars.out_points[centerpoint_index].xy, label="?", radius=radius)
             for index in close_points_indices[::-1]:
                 del globalvars.out_points[index]
             return True, newCluster
@@ -78,11 +88,11 @@ def newClusterCreated():
 
 
 def Refit(_centroids, new_point=None):
+    global outpointsfails
     centroids = _centroids
     # Check if there is a new point for the refit
 
     if new_point is not None and checkPointInOutpoints(new_point) is False:
-        print(f"Currently working with point: {new_point.xy}")
         globalvars.out_points.append(new_point)
     # Check if there is any points that are in any centroid
     while CheckIfOutpointsContainsInPoints(centroids):
@@ -96,6 +106,7 @@ def Refit(_centroids, new_point=None):
             centroids.append(newCluster)
             # Rerun refit
             Refit(centroids)
+    print("Outpoints fails: ", outpointsfails)
     return centroids
 
 

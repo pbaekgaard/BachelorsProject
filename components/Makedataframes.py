@@ -39,10 +39,12 @@ def make_dataframes(folder: str, window_size: int = 100):
                 time_series = [accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z]
 
                 # Window the time series
-                for i in range(0, len(accel_x) - window_size + 1, window_size):
-                    windowed_time_series = [subseries[i : i + window_size] for subseries in time_series]
-                    time_series_data_Training.append(windowed_time_series)
-                    activity_labels_Training.append(label)
+                # for i in range(0, len(accel_x) - window_size + 1, window_size):
+                #     windowed_time_series = [subseries[i : i + window_size] for subseries in time_series]
+                #     time_series_data_Training.append(windowed_time_series)
+                #     activity_labels_Training.append(label)
+                time_series_data_Training.append(time_series)
+                activity_labels_Training.append(label)
 
     for filename in sorted(os.listdir(folder_path_test)):
         if filename.endswith(".csv") and not filename.startswith(".~"):

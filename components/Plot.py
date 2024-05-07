@@ -3,7 +3,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 
 
-def plotData(centroids, clusters, k, points):
+def plotData(centroids, k, points):
     cluster_colors = ["r", "g", "m"]  # Cluster colors
     unassigned_color = "b"  # Color for unassigned points
 
@@ -15,14 +15,14 @@ def plotData(centroids, clusters, k, points):
     ax.set_aspect("equal")
 
     # Plot unassigned points first
-    unassigned_points = [points[j] for j in range(len(points)) if clusters[j] == -1]
-    for point in unassigned_points:
-        ax.scatter(point.xy[0], point.xy[1], point.xy[2], s=30, color=unassigned_color)
-        ax.text(point.xy[0], point.xy[1], point.xy[2], f" {point.isIn}", color=unassigned_color)
+    # unassigned_points = [points[j] for j in range(len(points)) if clusters[j] == -1]
+    # for point in unassigned_points:
+    #     ax.scatter(point.xy[0], point.xy[1], point.xy[2], s=30, color=unassigned_color)
+    #     ax.text(point.xy[0], point.xy[1], point.xy[2], f" {point.isIn}", color=unassigned_color)
 
     for i in range(k):
         # Collect points assigned to the current cluster
-        cluster_points = [points[j] for j in range(len(points)) if clusters[j] == i]
+        # cluster_points = [points[j] for j in range(len(points)) if clusters[j] == i]
 
         # Plot points in 3D and annotate them with isIn
         # for point in cluster_points:
