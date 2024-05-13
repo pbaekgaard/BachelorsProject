@@ -3,13 +3,15 @@ import numpy as np
 import pickle
 import os
 from phases.init import Initialize
-from phases.refit import Refit
+from phases.refit import Refit, Predict
 from components.Objects import Point
 from components.Plot import plotData
 from components.Makedataframes import make_dataframes
 from components.InitData import InitData
+from phases.initfit import InitFit
 import globalvars
-
+from sklearn.metrics import precision_score, recall_score, accuracy_score
+from components.Distance import findSingleDistance
 WINDOW_SIZE = 1500
 
 
@@ -27,9 +29,9 @@ def loadModel():
 
 def main():
     globalvars.init()
-
+    refit = True
     if not os.path.exists("model_data.pkl"):
-        points = InitData("ProcessedData", WINDOW_SIZE)
+        points,labels = InitData("ProcessedData", WINDOW_SIZE, training=True)
         centroids = Initialize(points)
         print("centroid radiuses")
         for c in centroids:
@@ -37,17 +39,55 @@ def main():
         print("Saving...")
         saveModel(centroids, globalvars.out_points)
         print(f"number of outpoints from inside main before refit: {len(globalvars.out_points)}")
+        # calculate the distance (using findDistance) between the centroids, print if the distance is smaller than radius + radius
+        for idx, c in enumerate(centroids):
+            for idx2, c2 in enumerate(centroids):
+                if idx != idx2:
+                    distance = findSingleDistance(c, c2)
+                    if distance < c.radius + c2.radius:
+                        print(f"Distance between {c.label} and {c2.label} is {distance} which is smaller than {c.radius + c2.radius}")
+
+
     else:
         print("Loading Existing Model Data...")
         centroids, globalvars.out_points = loadModel()
         print(f"Number of out_points from inside main, after load existing model: {len(globalvars.out_points)}")
         print(f"Number of centroids pre refit: {len(centroids)}")
-        newPoints = InitData("NewData", WINDOW_SIZE)
-        for currPoint in newPoints:
-            centroids = Refit(_centroids=centroids, new_point=currPoint)
-        # centroid = Refit(centroids, new_point)
-        print(len(globalvars.out_points))
-        print(f"Number of centroids after refit: {len(centroids)}")
+        newPoints, labels = InitData("NewData", WINDOW_SIZE, training=True)
+        testPoints, testLabels = InitData("StupidTestData", WINDOW_SIZE, training=True)
+        predictions = []
+        actual = testLabels
+        if(refit):
+            for currPoint in newPoints:
+                centroids = Refit(_centroids=centroids, new_point=currPoint)
+        for testPoint in testPoints:
+            prediction = Predict(centroids, testPoint)
+            predictions.append(prediction)
+        print(f"Predicted labels: {predictions}")
+        print(f"Actual labels: {actual}")
+        # Calculate precision
+        precision = precision_score(actual, predictions, average='weighted')
+
+        # Calculate accuracy
+        accuracy = accuracy_score(actual, predictions)
+        # Calculate precision
+        precision_micro = precision_score(actual, predictions, average='micro')
+        precision_macro = precision_score(actual, predictions, average='macro')
+
+        # Calculate recall
+        recall_micro = recall_score(actual, predictions, average='micro')
+        recall_macro = recall_score(actual, predictions, average='macro')
+
+        # PRINT METRICS
+        print(f"Accuracy: {accuracy}")
+        print(f"Precision (Micro): {precision_micro}")
+        print(f"Recall (Micro): {recall_micro}")
+        print(f"Precision (Macro): {precision_macro}")
+        print(f"Recall (Macro): {recall_macro}")
+
+
+        # print(len(globalvars.out_points))
+        # print(f"Number of centroids after refit: {len(centroids)}")
         print("Saving...")
         saveModel(centroids, globalvars.out_points)
 
@@ -59,8 +99,10 @@ def main():
     # plotData(centroids, len(centroids), points)  # Visualize the clusters
     print("STATUS REPORT:")
     print(f"Number of centroids: {len(centroids)}")
+
     for idx, c in enumerate(centroids):
         print(f"Centroid {idx+1}: {c.label}")
+        print(f"Radius: {c.radius}\n")
 
 
 if __name__ == "__main__":

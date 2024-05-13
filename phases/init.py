@@ -159,8 +159,8 @@ def Initialize(points):
 
         # Calculate the radius of the cluster by finding the maximum distance from the centroid to any point in the cluster
         distancesFromCentroid = findDistances(centroids=group, point=Point(xy=centroid_point, label=label))
-        radius = np.mean(distancesFromCentroid, axis=0)
-        print(f"Radius: {radius}")
+        radius = np.max(distancesFromCentroid, axis=0)
+        (f"Radius: {radius}")
         group = list(group)
         centroid = Cluster(xy=centroid_point, label=label, radius=radius)
         centroids.append(centroid)

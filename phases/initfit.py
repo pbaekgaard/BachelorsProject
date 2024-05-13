@@ -80,17 +80,18 @@ def newClusterCreated():
                 findDistances(
                     centroids=points_close_to_centroid, point=Point(xy=globalvars.out_points[centerpoint_index].xy)
                 )
-            ) + 2
-            userLabel = input(
-                "It looks like you have been doing something new for a while. Please give me a label so i can remember"
-                " it for the future: "
             )
-            newCluster = Cluster(xy=globalvars.out_points[centerpoint_index].xy, label=userLabel, radius=radius)
+            newCluster = Cluster(xy=globalvars.out_points[centerpoint_index].xy, label=globalvars.out_points[i].label, radius=radius)
             for index in close_points_indices[::-1]:
                 del globalvars.out_points[index]
             return True, newCluster
     return False, None
 
+def InitFit(points):
+    centroids = []
+    for point in points:
+        centroids = Refit(centroids, point)
+    return centroids
 
 def Refit(_centroids, new_point=None):
     global outpointsfails
