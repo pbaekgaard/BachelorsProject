@@ -15,6 +15,10 @@ def CheckIfOutpointsContainsInPoints(centroids):
     for idx, point in enumerate(globalvars.out_points):
         for centroid in centroids:
             distance = findSingleDistance(point, centroid)
+            print(f"Distance {distance}")
+            # print(f"Radius {centroid.radius}")
+
+            print(f"radius shape {centroid.radius.shape}")
             if distance < centroid.radius:
                 FoundInPoints.append((point, centroid))
                 globalvars.out_points.pop(idx)
@@ -56,8 +60,8 @@ def find_most_centered(close_points):
     center_of_mass = np.mean(close_points[:-1], axis=0)
 
     # Calculate distances to center of mass
-    distances = np.linalg.norm(close_points - center_of_mass, axis=1)
-
+    # distances = np.linalg.norm(close_points - center_of_mass, axis=1)
+    distances = findDistances(centroids=close_points, point=Point(xy=center_of_mass))
     # Find the point with minimum distance
     index = np.argmin(distances)
     return index
@@ -67,9 +71,12 @@ def newClusterCreated():
     point_coordinates = [point.xy for point in globalvars.out_points]
     points_array = np.array(point_coordinates)
     for i, point in enumerate(points_array):
-        distances = np.linalg.norm(points_array - point, axis=1)
-
-        close_points = points_array[distances <= TRESH]
+        # distances = np.linalg.norm(points_array - point, axis=1)
+        distances = findDistances(centroids=globalvars.out_points, point=Point(xy=point))
+        close_points = []
+        for idx, dist in enumerate(distances):
+            if dist < TRESH:
+                close_points.append(points_array[idx])
         if len(close_points) >= 5:
             centerpoint_index = find_most_centered(close_points)
             close_points_indices = np.unique(np.where(np.isin(points_array, close_points))[0])
@@ -96,7 +103,7 @@ def Refit(_centroids, new_point=None):
     global outpointsfails
     centroids = _centroids
     # Check if there is a new point for the refit
-    if new_point is not None and checkPointInOutpoints(new_point) is False:
+    if new_point is not None:
         globalvars.out_points.append(new_point)
     # Check if there is any points that are in any centroid
     while CheckIfOutpointsContainsInPoints(centroids):
@@ -127,18 +134,18 @@ def Predict(_centroids, point):
                 prediction = centroid.label
     return prediction
 
-def checkPointInOutpoints(newPoint):
-    foundOne = False
-    for point in globalvars.out_points:
-        foundOne = checkPointWithNewPoint(point, newPoint)
-        if foundOne:
-            return True
+# def checkPointInOutpoints(newPoint):
+#     foundOne = False
+#     for point in globalvars.out_points:
+#         foundOne = checkPointWithNewPoint(point, newPoint)
+#         if foundOne:
+#             return True
 
-    return False
+#     return False
 
 
-def checkPointWithNewPoint(point, newPoint):
-    for i in range(len(point.xy)):
-        if point.xy[i] != newPoint.xy[i]:
-            return False
-    return True
+# def checkPointWithNewPoint(point, newPoint):
+#     for i in range(len(point.xy)):
+#         if point.xy[i] != newPoint.xy[i]:
+#             return False
+#     return True

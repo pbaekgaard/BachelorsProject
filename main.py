@@ -12,6 +12,7 @@ from phases.initfit import InitFit
 import globalvars
 from sklearn.metrics import precision_score, recall_score, accuracy_score
 from components.Distance import findSingleDistance
+
 WINDOW_SIZE = 1500
 
 
@@ -44,8 +45,11 @@ def main():
             for idx2, c2 in enumerate(centroids):
                 if idx != idx2:
                     distance = findSingleDistance(c, c2)
-                    if distance < c.radius + c2.radius:
+                    print(f"Distance in main: {distance}")
+                    if distance < (c.radius + c2.radius):
                         print(f"Distance between {c.label} and {c2.label} is {distance} which is smaller than {c.radius + c2.radius}")
+                        print(f"Point {c.label} has point: {c.xy}")
+                        print(f"Point {c2.label} has point: {c2.xy}")
 
 
     else:
@@ -102,7 +106,8 @@ def main():
 
     for idx, c in enumerate(centroids):
         print(f"Centroid {idx+1}: {c.label}")
-        print(f"Radius: {c.radius}\n")
+        print(f"Radius: {c.radius}")
+        print(f"Points: {c.xy}\n")
 
 
 if __name__ == "__main__":

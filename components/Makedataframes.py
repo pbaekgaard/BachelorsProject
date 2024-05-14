@@ -65,7 +65,7 @@ def make_dataframes(folder: str, window_size: int = 100):
                 gyro_x = group["Gyro_x"].values.tolist()
                 gyro_y = group["Gyro_y"].values.tolist()
                 gyro_z = group["Gyro_z"].values.tolist()
-                time_series = [accel_x, accel_y, accel_z]
+                time_series = [accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z]
 
                 # Window the time series
                 for i in range(0, len(accel_x) - window_size + 1, window_size):

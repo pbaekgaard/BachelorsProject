@@ -97,7 +97,7 @@ def Refit(_centroids, new_point=None):
     global outpointsfails
     centroids = _centroids
     # Check if there is a new point for the refit
-    if new_point is not None and checkPointInOutpoints(new_point) is False:
+    if new_point is not None:
         globalvars.out_points.append(new_point)
     # Check if there is any points that are in any centroid
     while CheckIfOutpointsContainsInPoints(centroids):
@@ -128,18 +128,4 @@ def Predict(_centroids, point):
                 prediction = centroid.label
     return prediction
 
-def checkPointInOutpoints(newPoint):
-    foundOne = False
-    for point in globalvars.out_points:
-        foundOne = checkPointWithNewPoint(point, newPoint)
-        if foundOne:
-            return True
 
-    return False
-
-
-def checkPointWithNewPoint(point, newPoint):
-    for i in range(len(point.xy)):
-        if point.xy[i] != newPoint.xy[i]:
-            return False
-    return True

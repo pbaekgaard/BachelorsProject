@@ -69,6 +69,7 @@ def setRadius(centroids, points):
         for p in points:
             if p.label == c.label:
                 distance = findSingleDistance(c, p)
+                print(f"Point shape: {p.xy.shape}")
                 print(f"Distance: {distance}")
                 print(f"Longest Distance: {longestDistance}")
                 if distance > longestDistance:
@@ -156,11 +157,12 @@ def Initialize(points):
     for label, group in groupby(points, key=lambda point: point.label):
         group = list(group)
         centroid_point = np.mean([point.xy for point in group], axis=0)
-
+        print(f"Centroid Shape: {centroid_point.shape}")
+        testDistance = findSingleDistance(Point(xy=np.array([[1,1,1],[1,0,1]])), Point(xy=np.array([[1,1,1],[1,1,1]])))
+        print(f"Test Distance: {testDistance}")
         # Calculate the radius of the cluster by finding the maximum distance from the centroid to any point in the cluster
         distancesFromCentroid = findDistances(centroids=group, point=Point(xy=centroid_point, label=label))
-        radius = np.max(distancesFromCentroid, axis=0)
-        (f"Radius: {radius}")
+        radius = np.min(distancesFromCentroid, axis=0)
         group = list(group)
         centroid = Cluster(xy=centroid_point, label=label, radius=radius)
         centroids.append(centroid)
