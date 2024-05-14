@@ -45,7 +45,7 @@ def main():
             for idx2, c2 in enumerate(centroids):
                 if idx != idx2:
                     distance = findSingleDistance(c, c2)
-                    print(f"Distance in main: {distance}")
+                    # print(f"Distance in main: {distance}")
                     if distance < (c.radius + c2.radius):
                         print(f"Distance between {c.label} and {c2.label} is {distance} which is smaller than {c.radius + c2.radius}")
                         print(f"Point {c.label} has point: {c.xy}")

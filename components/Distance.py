@@ -7,7 +7,6 @@ def findDistances(centroids, point):
     for c in centroids:
         distance = findSingleDistance(c, point)
         distances.append(distance)
-    print(f"a random distance: {distances[0]}")
     return distances
 
 

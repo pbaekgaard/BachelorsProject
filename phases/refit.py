@@ -3,9 +3,9 @@ import globalvars
 from components.Objects import Point, Cluster
 from components.Distance import findSingleDistance, findDistances
 
-TRESH = 50
+TRESH = 25
 FoundInPoints = []
-newClusterPointThreshold = 5
+newClusterPointThreshold = 15
 outpointsfails = 0
 
 
@@ -15,10 +15,6 @@ def CheckIfOutpointsContainsInPoints(centroids):
     for idx, point in enumerate(globalvars.out_points):
         for centroid in centroids:
             distance = findSingleDistance(point, centroid)
-            print(f"Distance {distance}")
-            # print(f"Radius {centroid.radius}")
-
-            print(f"radius shape {centroid.radius.shape}")
             if distance < centroid.radius:
                 FoundInPoints.append((point, centroid))
                 globalvars.out_points.pop(idx)
@@ -61,7 +57,11 @@ def find_most_centered(close_points):
 
     # Calculate distances to center of mass
     # distances = np.linalg.norm(close_points - center_of_mass, axis=1)
-    distances = findDistances(centroids=close_points, point=Point(xy=center_of_mass))
+    tempCentroids = []
+    for point in close_points:
+        tCent = Point(xy=point)
+        tempCentroids.append(tCent)
+    distances = findDistances(centroids=tempCentroids, point=Point(xy=center_of_mass))
     # Find the point with minimum distance
     index = np.argmin(distances)
     return index
@@ -71,23 +71,24 @@ def newClusterCreated():
     point_coordinates = [point.xy for point in globalvars.out_points]
     points_array = np.array(point_coordinates)
     for i, point in enumerate(points_array):
-        # distances = np.linalg.norm(points_array - point, axis=1)
+        # distances2 = np.linalg.norm(points_array - point, axis=1)
+        # print(f"Example of distances2: {distances2[3]}")
         distances = findDistances(centroids=globalvars.out_points, point=Point(xy=point))
-        close_points = []
-        for idx, dist in enumerate(distances):
-            if dist < TRESH:
-                close_points.append(points_array[idx])
+        distances = np.array(distances)
+        close_points = points_array[distances <= TRESH]
         if len(close_points) >= 5:
+            print(type(close_points))
+            print(close_points[1])
             centerpoint_index = find_most_centered(close_points)
             close_points_indices = np.unique(np.where(np.isin(points_array, close_points))[0])
             points_close_to_centroid = []
             for idx in close_points_indices:
                 points_close_to_centroid.append(globalvars.out_points[idx])
-            radius = max(
+            radius = min(
                 findDistances(
                     centroids=points_close_to_centroid, point=Point(xy=globalvars.out_points[centerpoint_index].xy)
                 )
-            ) + 2
+            )
             userLabel = input(
                 "It looks like you have been doing something new for a while. Please give me a label so i can remember"
                 " it for the future: "

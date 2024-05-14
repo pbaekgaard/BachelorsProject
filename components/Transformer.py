@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-
+from scipy.stats import skew, kurtosis
 
 def Transform(data_sequences):
     print("Transforming data using Catch22")
@@ -14,8 +14,6 @@ def Transform(data_sequences):
 
         kMin = accelSorted[:k]
         kMax = accelSorted[-k:]
-        print(f"kMin: {kMin}")
-        print(f"kMax: {kMax}")
 
 
         dataOut = np.column_stack((kMin, kMax))

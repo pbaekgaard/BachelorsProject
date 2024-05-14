@@ -4,7 +4,7 @@ from components.Distance import findDistances, findSingleDistance
 import numpy as np
 import globalvars
 
-RAD = 5
+RAD = 10
 
 
 def initialize_centroids(points, k):
@@ -162,7 +162,7 @@ def Initialize(points):
         print(f"Test Distance: {testDistance}")
         # Calculate the radius of the cluster by finding the maximum distance from the centroid to any point in the cluster
         distancesFromCentroid = findDistances(centroids=group, point=Point(xy=centroid_point, label=label))
-        radius = np.min(distancesFromCentroid, axis=0)
+        radius = np.mean(distancesFromCentroid, axis=0)
         group = list(group)
         centroid = Cluster(xy=centroid_point, label=label, radius=radius)
         centroids.append(centroid)
