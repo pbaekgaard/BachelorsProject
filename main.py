@@ -108,6 +108,10 @@ def main():
         print(f"Centroid {idx+1}: {c.label}")
         print(f"Radius: {c.radius}")
         print(f"Points: {c.xy}\n")
+        for idx2, c2 in enumerate(centroids):
+            if idx != idx2:
+                distance = findSingleDistance(c, c2)
+                print(f"Distance between {c.label} and {c2.label} is {distance}. They have a combined radius of: {c.radius + c2.radius}")
 
 
 if __name__ == "__main__":

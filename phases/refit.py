@@ -89,7 +89,7 @@ def newClusterCreated():
                 findDistances(
                     centroids=points_close_to_centroid, point=Point(xy=globalvars.out_points[centerpoint_index].xy)
                 )
-            ) * 2
+            )
             userLabel = input(
                 "It looks like you have been doing something new for a while. Please give me a label so i can remember"
                 " it for the future: "
