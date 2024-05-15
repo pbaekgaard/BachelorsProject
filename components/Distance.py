@@ -13,5 +13,5 @@ def findDistances(centroids, point):
 def findSingleDistance(centroid, point):
     """Calculate the Euclidean distance"""
     # Calculate the Euclidean distance between two 6d points:
-    distance = np.sqrt(np.sum((centroid.xy.reshape(6, -1) - point.xy.reshape(6, -1)) ** 2))
+    distance = np.sqrt(np.sum((centroid.xy.reshape(centroid.xy.shape[0]*centroid.xy.shape[1], -1) - point.xy.reshape(centroid.xy.shape[0] * centroid.xy.shape[1], -1)) ** 2))
     return distance

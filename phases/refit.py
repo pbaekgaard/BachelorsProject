@@ -3,9 +3,9 @@ import globalvars
 from components.Objects import Point, Cluster
 from components.Distance import findSingleDistance, findDistances
 
-TRESH = 25
+THRESH = 25
 FoundInPoints = []
-newClusterPointThreshold = 15
+newClusterPointThreshold = 5
 outpointsfails = 0
 
 
@@ -75,15 +75,16 @@ def newClusterCreated():
         # print(f"Example of distances2: {distances2[3]}")
         distances = findDistances(centroids=globalvars.out_points, point=Point(xy=point))
         distances = np.array(distances)
-        close_points = points_array[distances <= TRESH]
-        if len(close_points) >= 5:
+        close_points = points_array[distances <= THRESH]
+        if len(close_points) >= newClusterPointThreshold:
             print(type(close_points))
             print(close_points[1])
             centerpoint_index = find_most_centered(close_points)
             close_points_indices = np.unique(np.where(np.isin(points_array, close_points))[0])
             points_close_to_centroid = []
             for idx in close_points_indices:
-                points_close_to_centroid.append(globalvars.out_points[idx])
+                if idx != centerpoint_index:
+                    points_close_to_centroid.append(globalvars.out_points[idx])
             radius = min(
                 findDistances(
                     centroids=points_close_to_centroid, point=Point(xy=globalvars.out_points[centerpoint_index].xy)

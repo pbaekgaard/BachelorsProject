@@ -8,7 +8,7 @@ from components.Objects import Point
 from components.Plot import plotData
 from components.Makedataframes import make_dataframes
 from components.InitData import InitData
-from phases.initfit import InitFit
+from phases.fitinit import InitFit
 import globalvars
 from sklearn.metrics import precision_score, recall_score, accuracy_score
 from components.Distance import findSingleDistance
