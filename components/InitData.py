@@ -35,24 +35,26 @@ def InitData(path: str, WINDOW_SIZE: int, training: bool = True):
     for idx, dat in enumerate(data):
 
         point = Point(xy=dat, label=labels[idx])
-        # if labels[idx] == 'A':
-        #     print(f"Point {labels[idx]} has mean: {point.xy}")
-        #     # plt.plot(point.xy.T)
-        #     blah += 1
-        # if labels[idx] == 'B':
-        #     print(f"Point {labels[idx]} has mean: {point.xy}")
-        #     # plt.plot(point.xy.T)
-        #     blah += 1
-        # if labels[idx] == 'C':
-        #     print(f"Point {labels[idx]} has mean: {point.xy}")
-        #     # plt.plot(point.xy.T)
-        #     blah += 1
-        # if labels[idx] == 'D':
-        #     print(f"Point {labels[idx]} has mean: {point.xy}")
-        #     plt.plot(point.xy.T)
-        #     blah += 1
-        #     plt.show()
-        #     pause(1500)
-
+        if blah <  1:
+            # if labels[idx] == 'A':
+            #     print(f"Point {labels[idx]} has mean: {point.xy}")
+            #     plt.plot(point.xy.T)
+            #     blah += 1
+            if labels[idx] == 'B':
+                print(f"Point {labels[idx]} has mean: {point.xy}")
+                plt.plot(point.xy.T)
+                blah += 1
+            # if labels[idx] == 'C':
+            #     print(f"Point {labels[idx]} has mean: {point.xy}")
+                # plt.plot(point.xy.T)
+            #     blah += 1
+            # if labels[idx] == 'D':
+            #     print(f"Point {labels[idx]} has mean: {point.xy}")
+            #     plt.plot(point.xy.T)
+            #     blah += 1
         points.append(point)
+    # plt.show()
+    # pause(1500)
+
+
     return points, labels

@@ -15,11 +15,7 @@ def Transform(data_sequences):
         kMin = accelSorted[:k]
         kMax = accelSorted[-k:]
 
-        # # GYROSCOPE
-        # gyro = np.mean(dataSeq[3:], axis=0)
-        # gyroSorted = np.sort(gyro)
-        # kMinGyro = gyroSorted[:k]
-        # kMaxGyro = gyroSorted[-k:]
+       
 
         dataOut = np.column_stack((kMin, kMax))
         data.append(dataOut.T)
