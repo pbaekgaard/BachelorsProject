@@ -9,16 +9,19 @@ def Transform(data_sequences):
         k = 20
         print(f"Transforming sequence {idx+1}/{len(data_sequences)}")
         dataSeq = dataSeq.T[::20].T
+        # ACCELEROMETER
         accel = np.mean(dataSeq[:3], axis=0)
         accelSorted = np.sort(accel)
-        gyro = np.mean(dataSeq[3:], axis=0)
-        gyroSorted = np.sort(gyro)
         kMin = accelSorted[:k]
         kMax = accelSorted[-k:]
-        kMinGyro = gyroSorted[:k]
-        kMaxGyro = gyroSorted[-k:]
 
-        dataOut = np.column_stack((kMin, kMax, kMinGyro, kMaxGyro))
+        # # GYROSCOPE
+        # gyro = np.mean(dataSeq[3:], axis=0)
+        # gyroSorted = np.sort(gyro)
+        # kMinGyro = gyroSorted[:k]
+        # kMaxGyro = gyroSorted[-k:]
+
+        dataOut = np.column_stack((kMin, kMax))
         data.append(dataOut.T)
     print("Transformation complete!")
     return data

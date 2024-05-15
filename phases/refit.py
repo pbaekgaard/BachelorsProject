@@ -3,7 +3,7 @@ import globalvars
 from components.Objects import Point, Cluster
 from components.Distance import findSingleDistance, findDistances
 
-THRESH = 25
+THRESH = 5
 FoundInPoints = []
 newClusterPointThreshold = 5
 outpointsfails = 0
@@ -85,11 +85,11 @@ def newClusterCreated():
             for idx in close_points_indices:
                 if idx != centerpoint_index:
                     points_close_to_centroid.append(globalvars.out_points[idx])
-            radius = min(
+            radius = np.min(
                 findDistances(
                     centroids=points_close_to_centroid, point=Point(xy=globalvars.out_points[centerpoint_index].xy)
                 )
-            )
+            ) * 2
             userLabel = input(
                 "It looks like you have been doing something new for a while. Please give me a label so i can remember"
                 " it for the future: "
