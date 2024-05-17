@@ -50,17 +50,12 @@ def Recalibrate(_centroids):
 def find_most_centered(close_points):
     """
     Finds the most centered point among the given close points.
-    """
-    Finds the most centered point among the given close points.
 
     Args:
         close_points: A list of 5 close points.
     Args:
         close_points: A list of 5 close points.
 
-    Returns:
-        The most centered point.
-    """
     Returns:
         The most centered point.
     """
@@ -170,7 +165,6 @@ def Refit(_centroids, new_point=None):
     # If a new cluster is created from multiple close outpoints, rerun Refit
     if len(globalvars.out_points) >= newClusterPointThreshold:
         newClusterWasCreated, newCluster = newClusterCreated()
-        if newClusterWasCreated:
         if newClusterWasCreated:
             # Add new clustercenter to centroids array
             centroids.append(newCluster)
