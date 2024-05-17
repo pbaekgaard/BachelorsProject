@@ -10,9 +10,11 @@ from components.Makedataframes import make_dataframes
 from components.InitData import InitData
 from phases.fitinit import InitFit
 import globalvars
-from sklearn.metrics import precision_score, recall_score, accuracy_score
+# from sklearn.metrics import accuracy_score, precision_score, recall_score
+from sklearn.metrics import classification_report
 from components.Distance import findSingleDistance
-
+from memory_profiler import profile
+from pyinstrument import Profiler
 WINDOW_SIZE = 1500
 
 
@@ -27,10 +29,10 @@ def loadModel():
 
     return _centroids, _points
 
-
+@profile
 def main():
     globalvars.init()
-    refit = True
+    refit = False
     if not os.path.exists("model_data.pkl"):
         points,labels = InitData("ProcessedData", WINDOW_SIZE, training=True)
         centroids = Initialize(points)
@@ -58,42 +60,52 @@ def main():
         print(f"Number of out_points from inside main, after load existing model: {len(globalvars.out_points)}")
         print(f"Number of centroids pre refit: {len(centroids)}")
         newPoints, labels = InitData("NewData", WINDOW_SIZE, training=True)
-        testPoints, testLabels = InitData("StupidTestData", WINDOW_SIZE, training=True)
-        predictions = []
-        actual = testLabels
         if(refit):
             for currPoint in newPoints:
                 centroids = Refit(_centroids=centroids, new_point=currPoint)
-        for testPoint in testPoints:
-            prediction = Predict(centroids, testPoint)
-            predictions.append(prediction)
-        print(f"Predicted labels: {predictions}")
-        print(f"Actual labels: {actual}")
-        # Calculate precision
-        precision = precision_score(actual, predictions, average='weighted')
-
-        # Calculate accuracy
-        accuracy = accuracy_score(actual, predictions)
-        # Calculate precision
-        precision_micro = precision_score(actual, predictions, average='micro')
-        precision_macro = precision_score(actual, predictions, average='macro')
-
-        # Calculate recall
-        recall_micro = recall_score(actual, predictions, average='micro')
-        recall_macro = recall_score(actual, predictions, average='macro')
-
-        # PRINT METRICS
-        print(f"Accuracy: {accuracy}")
-        print(f"Precision (Micro): {precision_micro}")
-        print(f"Recall (Micro): {recall_micro}")
-        print(f"Precision (Macro): {precision_macro}")
-        print(f"Recall (Macro): {recall_macro}")
-
+        
 
         # print(len(globalvars.out_points))
         # print(f"Number of centroids after refit: {len(centroids)}")
         print("Saving...")
         saveModel(centroids, globalvars.out_points)
+
+    testPoints, testLabels = InitData("StupidTestData", WINDOW_SIZE, training=True)
+    predictions = []
+    actual = testLabels
+    for testPoint in testPoints:
+        prediction = Predict(centroids, testPoint)
+        predictions.append(prediction)
+    print(f"Predicted labels: {predictions}")
+    print(f"Actual labels: {actual}")
+    # Calculate precision
+    # precision = precision_score(actual, predictions, average='weighted')
+
+    # # Calculate accuracy
+    # accuracy = accuracy_score(actual, predictions)
+    # # Calculate precision
+    # precision_micro = precision_score(actual, predictions, average='micro')
+    # precision_macro = precision_score(actual, predictions, average='macro')
+
+    # # Calculate recall
+    # recall_micro = recall_score(actual, predictions, average='micro')
+    # recall_macro = recall_score(actual, predictions, average='macro')
+    # accuracy = accuracy_score(y_true=actual, y_pred=predictions, normalize=True)
+
+    # precision_micro = precision_score(y_true=actual, y_pred=predictions, average='micro', zero_division=0)
+    # precision_macro = precision_score(y_true=actual, y_pred=predictions, average='macro', zero_division=0)
+
+    # recall_micro = recall_score(y_true=actual, y_pred=predictions, average='micro', zero_division=0)
+    # recall_macro = recall_score(y_true=actual, y_pred=predictions, average='macro', zero_division=0)
+    # # PRINT METRICS
+    # print(f"Accuracy: {accuracy}")
+    # print(f"Precision (Micro): {precision_micro}")
+    # print(f"Recall (Micro): {recall_micro}")
+    # print(f"Precision (Macro): {precision_macro}")
+    # print(f"Recall (Macro): {recall_macro}")
+    classreport = classification_report(y_true=actual, y_pred=predictions)
+    print(classreport)
+
 
     # 0) Plot new point
     # 1) Implement threshold for amount of new points to create cluster and threshold for single point radius to check for points inside to know if it is within the same cluster
@@ -115,4 +127,8 @@ def main():
 
 
 if __name__ == "__main__":
+    profiler = Profiler()
+    profiler.start()
     main()
+    profiler.stop()
+    profiler.print()

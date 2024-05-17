@@ -1,13 +1,9 @@
 from components.Transformer import Transform
 from components.Makedataframes import make_dataframes
 from components.Objects import Point
-import numpy as np
-from sklearn.preprocessing import MinMaxScaler, RobustScaler, Normalizer, PowerTransformer
-from sklearn.preprocessing import normalize
-import matplotlib.pyplot as plt
+from sklearn.preprocessing import MinMaxScaler, Normalizer
 scaler = MinMaxScaler()
 normalizer = Normalizer()
-from time import sleep as pause
 
 
 def InitData(path: str, WINDOW_SIZE: int, training: bool = True):
@@ -27,34 +23,10 @@ def InitData(path: str, WINDOW_SIZE: int, training: bool = True):
     
 
     data = Transform(data)
-    # data = scaler.fit_transform(data)
-    # data = normalize(data, norm="l2")
     points = []
-    columns = ['AccelX', 'AccelY', 'AccelZ', 'GyroX', 'GyroY', 'GyroZ']
-    blah = 0
     for idx, dat in enumerate(data):
-
         point = Point(xy=dat, label=labels[idx])
-        if blah <  1:
-            # if labels[idx] == 'A':
-            #     print(f"Point {labels[idx]} has mean: {point.xy}")
-            #     plt.plot(point.xy.T)
-            #     blah += 1
-            if labels[idx] == 'B':
-                print(f"Point {labels[idx]} has mean: {point.xy}")
-                plt.plot(point.xy.T)
-                blah += 1
-            # if labels[idx] == 'C':
-            #     print(f"Point {labels[idx]} has mean: {point.xy}")
-                # plt.plot(point.xy.T)
-            #     blah += 1
-            # if labels[idx] == 'D':
-            #     print(f"Point {labels[idx]} has mean: {point.xy}")
-            #     plt.plot(point.xy.T)
-            #     blah += 1
         points.append(point)
-    # plt.show()
-    # pause(1500)
 
 
     return points, labels

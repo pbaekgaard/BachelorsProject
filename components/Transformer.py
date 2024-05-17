@@ -6,7 +6,7 @@ def Transform(data_sequences):
     print("Transforming data using Catch22")
     data = []
     for idx, dataSeq in enumerate(data_sequences):
-        k = 20
+        k = 5
         print(f"Transforming sequence {idx+1}/{len(data_sequences)}")
         dataSeq = dataSeq.T[::20].T
         # ACCELEROMETER
@@ -15,7 +15,7 @@ def Transform(data_sequences):
         kMin = accelSorted[:k]
         kMax = accelSorted[-k:]
 
-       
+        
 
         dataOut = np.column_stack((kMin, kMax))
         data.append(dataOut.T)

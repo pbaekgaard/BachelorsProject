@@ -4,7 +4,7 @@ import globalvars
 from components.Objects import Point, Cluster
 from components.Distance import findSingleDistance, findDistances
 
-THRESH = 3
+THRESH = 10
 FoundInPoints = []
 newClusterPointThreshold = 5
 outpointsfails = 0
@@ -38,7 +38,10 @@ def Recalibrate(_centroids):
             break
 
     # Recalibrate centroid
+    # oldXy = centroids[centroidIndex].xy
     centroids[centroidIndex].xy = np.mean([centroids[centroidIndex].xy, foundPoint.xy], axis=0)
+    # diff = np.linalg.norm(oldXy - centroids[centroidIndex].xy)
+    # centroids[centroidIndex].xy = centroids[centroidIndex].xy -  diff/2
     return centroids
 
 
@@ -68,75 +71,75 @@ def find_most_centered(close_points):
     return index
 
 
-# def newClusterCreated():
-#     point_coordinates = [point.xy for point in globalvars.out_points]
-#     points_array = np.array(point_coordinates)
-#     for i, point in enumerate(points_array):
-#         # distances2 = np.linalg.norm(points_array - point, axis=1)
-#         # print(f"Example of distances2: {distances2[3]}")
-#         distances = findDistances(centroids=globalvars.out_points, point=Point(xy=point))
-#         distances = np.array(distances)
-#         close_points = points_array[distances <= THRESH]
-#         if len(close_points) >= newClusterPointThreshold:
-#             print(type(close_points))
-#             print(close_points[1])
-#             centerpoint_index = find_most_centered(close_points)
-#             close_points_indices = np.unique(np.where(np.isin(points_array, close_points))[0])
-#             points_close_to_centroid = []
-#             for idx in close_points_indices:
-#                 if idx != centerpoint_index:
-#                     points_close_to_centroid.append(globalvars.out_points[idx])
-#             radius = np.min(
-#                 findDistances(
-#                     centroids=points_close_to_centroid, point=Point(xy=globalvars.out_points[centerpoint_index].xy)
-#                 )
-#             ) * 1.5
-#             userLabel = input(
-#                 "It looks like you have been doing something new for a while. Please give me a label so i can remember"
-#                 " it for the future: "
-#             )
-#             newCluster = Cluster(xy=globalvars.out_points[centerpoint_index].xy, label=userLabel, radius=radius)
-#             for index in close_points_indices[::-1]:
-#                 del globalvars.out_points[index]
-#             return True, newCluster
-#     return False, None
-
-
-
-
 def newClusterCreated():
-    print(len(globalvars.out_points))
-    for idx, currentPoint in enumerate(globalvars.out_points):
-        # Array of all other points beside the current point
-        otherPoints = globalvars.out_points[:idx] + globalvars.out_points[idx + 1:]
-        # Calculate distances to all other points
-        distances = findDistances(centroids=otherPoints, point=currentPoint)
-        # Find the points that are within the threshold
-        pointsWithinThreshold = []
-        for distance in distances:
-            if distance < THRESH:
-                pointsWithinThreshold.append(otherPoints[distances.index(distance)])
-        # If there are enough points within the threshold, create a new cluster
-        if len(pointsWithinThreshold) > newClusterPointThreshold:
-            # Get distances from current point to all the close points
-            distancesClose = findDistances(centroids=pointsWithinThreshold, point=currentPoint)
-            # Create the radius from the close points distances
-            radius = np.mean(distancesClose)
-            # Ask the user to label the new cluster
-            userLabel = input("It looks like you have been doing something new for a while. Please give me a label so i can remember")
-            # Create the new cluster
-            newCluster = Cluster(xy=currentPoint.xy, label=userLabel, radius=radius)
-            # Remove the points that are within the threshold from outpoints
-            # And remove the current point from the outpoints.
-            print("Glbalvars outpoints length: ", len(globalvars.out_points))
-            for point in pointsWithinThreshold:
-                print(f"point in threshold: {point.xy}")
-                print(f"point in globalvars:{globalvars.out_points[globalvars.out_points.index(point)]}" )
-                globalvars.out_points.remove(point)
-            globalvars.out_points.remove(currentPoint)
-            print(f"New Cluster Created, outPoints is this length: {len(globalvars.out_points)}")
+    point_coordinates = [point.xy for point in globalvars.out_points]
+    points_array = np.array(point_coordinates)
+    for i, point in enumerate(points_array):
+        # distances2 = np.linalg.norm(points_array - point, axis=1)
+        # print(f"Example of distances2: {distances2[3]}")
+        distances = findDistances(centroids=globalvars.out_points, point=Point(xy=point))
+        distances = np.array(distances)
+        close_points = points_array[distances <= THRESH]
+        if len(close_points) >= newClusterPointThreshold:
+            print(type(close_points))
+            print(close_points[1])
+            centerpoint_index = find_most_centered(close_points)
+            close_points_indices = np.unique(np.where(np.isin(points_array, close_points))[0])
+            points_close_to_centroid = []
+            for idx in close_points_indices:
+                if idx != centerpoint_index:
+                    points_close_to_centroid.append(globalvars.out_points[idx])
+            radius = np.median(
+                findDistances(
+                    centroids=points_close_to_centroid, point=Point(xy=globalvars.out_points[centerpoint_index].xy)
+                )
+            ) / 0.8
+            userLabel = input(
+                "It looks like you have been doing something new for a while. Please give me a label so i can remember"
+                " it for the future: "
+            )
+            newCluster = Cluster(xy=globalvars.out_points[centerpoint_index].xy, label=userLabel, radius=radius)
+            for index in close_points_indices[::-1]:
+                del globalvars.out_points[index]
             return True, newCluster
     return False, None
+
+
+
+
+# def newClusterCreated():
+#     print(len(globalvars.out_points))
+#     for idx, currentPoint in enumerate(globalvars.out_points):
+#         # Array of all other points beside the current point
+#         otherPoints = globalvars.out_points[:idx] + globalvars.out_points[idx + 1:]
+#         # Calculate distances to all other points
+#         distances = findDistances(centroids=otherPoints, point=currentPoint)
+#         # Find the points that are within the threshold
+#         pointsWithinThreshold = []
+#         for distance in distances:
+#             if distance < THRESH:
+#                 pointsWithinThreshold.append(otherPoints[distances.index(distance)])
+#         # If there are enough points within the threshold, create a new cluster
+#         if len(pointsWithinThreshold) > newClusterPointThreshold:
+#             # Get distances from current point to all the close points
+#             distancesClose = findDistances(centroids=pointsWithinThreshold, point=currentPoint)
+#             # Create the radius from the close points distances
+#             radius = np.mean(distancesClose)
+#             # Ask the user to label the new cluster
+#             userLabel = input("It looks like you have been doing something new for a while. Please give me a label so i can remember")
+#             # Create the new cluster
+#             newCluster = Cluster(xy=currentPoint.xy, label=userLabel, radius=radius)
+#             # Remove the points that are within the threshold from outpoints
+#             # And remove the current point from the outpoints.
+#             print("Glbalvars outpoints length: ", len(globalvars.out_points))
+#             for point in pointsWithinThreshold:
+#                 print(f"point in threshold: {point.xy}")
+#                 print(f"point in globalvars:{globalvars.out_points[globalvars.out_points.index(point)]}" )
+#                 globalvars.out_points.remove(point)
+#             globalvars.out_points.remove(currentPoint)
+#             print(f"New Cluster Created, outPoints is this length: {len(globalvars.out_points)}")
+#             return True, newCluster
+#     return False, None
 
 
 
