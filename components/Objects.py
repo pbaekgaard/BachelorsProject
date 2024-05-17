@@ -1,5 +1,5 @@
 class Point:
-    def __init__(self, xy, label=None, isIn=False, radius=2.5):
+    def __init__(self, xy, label=None, isIn=False, radius=5):
         self.xy = xy
         self.label = label
         self.isIn = isIn

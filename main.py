@@ -3,69 +3,132 @@ import numpy as np
 import pickle
 import os
 from phases.init import Initialize
-from phases.refit import Refit
+from phases.refit import Refit, Predict
 from components.Objects import Point
 from components.Plot import plotData
-import glob
-from components.Transformer import transform
+from components.Makedataframes import make_dataframes
+from components.InitData import InitData
+from phases.fitinit import InitFit
+import globalvars
+# from sklearn.metrics import accuracy_score, precision_score, recall_score
+from sklearn.metrics import classification_report
+from components.Distance import findSingleDistance
+from memory_profiler import profile
+from pyinstrument import Profiler
+WINDOW_SIZE = 1500
 
 
-def saveModel(centroids, clusters, out_points):
+def saveModel(centroids, out_points):
     with open("model_data.pkl", "wb") as f:
-        pickle.dump((centroids, clusters, glob.out_points), f)
+        pickle.dump((centroids, globalvars.out_points), f)
 
 
 def loadModel():
     with open("model_data.pkl", "rb") as f:
-        _centroids, _clusters, _points = pickle.load(f)
+        _centroids, _points = pickle.load(f)
 
-    return _centroids, _clusters, _points
+    return _centroids, _points
 
-
+@profile
 def main():
-    glob.init()
-    points = [
-        Point(xy=np.array([1.5, 1.8, 1.2]), label="A", isIn=True),
-        Point(xy=np.array([1.0, 2.0, 1.0]), label="A", isIn=True),
-        Point(xy=np.array([6.4, 1.2, 1.3]), label="A", isIn=True),
-        Point(xy=np.array([1.2, 1.6, 1.1]), label="A", isIn=True),
-        Point(xy=np.array([2.2, 1.9, 1.5]), label="A", isIn=True),
-        Point(xy=np.array([6.0, 7.0, 6.5]), label="B", isIn=True),
-        Point(xy=np.array([5.2, 6.8, 6.3]), label="B", isIn=True),
-        Point(xy=np.array([1.8, 7.2, 6.7]), label="B", isIn=True),
-        Point(xy=np.array([1.0, 6.5, 6.9]), label="B", isIn=True),
-        Point(xy=np.array([7.2, 7.1, 7.0]), label="B", isIn=True),
-    ]
-
-    new_point = Point(xy=np.array([1, 1.9, 1.1]))
-    new_point2 = Point(xy=np.array([2, 1.9, 1.1]))
-    new_point3 = Point(xy=np.array([15, 1.9, 1.1]))
-    new_point4 = Point(xy=np.array([15.6, 1.9, 1.1]))
-    new_point5 = Point(xy=np.array([15.5, 1.9, 1.1]))
-    new_point6 = Point(xy=np.array([16, 1.9, 1.1]))
-    new_point7 = Point(xy=np.array([15.3, 1.9, 1.1]))
-    newPoints = [new_point, new_point2, new_point3, new_point4, new_point5, new_point6, new_point7]
+    globalvars.init()
+    refit = False
     if not os.path.exists("model_data.pkl"):
-        k, centroids, clusters = Initialize(points)
+        points,labels = InitData("ProcessedData", WINDOW_SIZE, training=True)
+        centroids = Initialize(points)
+        print("centroid radiuses")
+        for c in centroids:
+            print(f"{c.label}: {c.radius}")
+        print("Saving...")
+        saveModel(centroids, globalvars.out_points)
+        print(f"number of outpoints from inside main before refit: {len(globalvars.out_points)}")
+        # calculate the distance (using findDistance) between the centroids, print if the distance is smaller than radius + radius
+        for idx, c in enumerate(centroids):
+            for idx2, c2 in enumerate(centroids):
+                if idx != idx2:
+                    distance = findSingleDistance(c, c2)
+                    # print(f"Distance in main: {distance}")
+                    if distance < (c.radius + c2.radius):
+                        print(f"Distance between {c.label} and {c2.label} is {distance} which is smaller than {c.radius + c2.radius}")
+                        print(f"Point {c.label} has point: {c.xy}")
+                        print(f"Point {c2.label} has point: {c2.xy}")
 
-        print("Saving...")
-        saveModel(centroids, clusters, glob.out_points)
+
     else:
-        print("Loading...")
-        centroids, clusters, glob.out_points = loadModel()
-        for currPoint in newPoints:
-            centroid = Refit(_centroids=centroids, new_point=currPoint)
-        # centroid = Refit(centroids, new_point)
+        print("Loading Existing Model Data...")
+        centroids, globalvars.out_points = loadModel()
+        print(f"Number of out_points from inside main, after load existing model: {len(globalvars.out_points)}")
+        print(f"Number of centroids pre refit: {len(centroids)}")
+        newPoints, labels = InitData("NewData", WINDOW_SIZE, training=True)
+        if(refit):
+            for currPoint in newPoints:
+                centroids = Refit(_centroids=centroids, new_point=currPoint)
+        
+
+        # print(len(globalvars.out_points))
+        # print(f"Number of centroids after refit: {len(centroids)}")
         print("Saving...")
-        saveModel(centroids, clusters, glob.out_points)
+        saveModel(centroids, globalvars.out_points)
+
+    testPoints, testLabels = InitData("StupidTestData", WINDOW_SIZE, training=True)
+    predictions = []
+    actual = testLabels
+    for testPoint in testPoints:
+        prediction = Predict(centroids, testPoint)
+        predictions.append(prediction)
+    print(f"Predicted labels: {predictions}")
+    print(f"Actual labels: {actual}")
+    # Calculate precision
+    # precision = precision_score(actual, predictions, average='weighted')
+
+    # # Calculate accuracy
+    # accuracy = accuracy_score(actual, predictions)
+    # # Calculate precision
+    # precision_micro = precision_score(actual, predictions, average='micro')
+    # precision_macro = precision_score(actual, predictions, average='macro')
+
+    # # Calculate recall
+    # recall_micro = recall_score(actual, predictions, average='micro')
+    # recall_macro = recall_score(actual, predictions, average='macro')
+    # accuracy = accuracy_score(y_true=actual, y_pred=predictions, normalize=True)
+
+    # precision_micro = precision_score(y_true=actual, y_pred=predictions, average='micro', zero_division=0)
+    # precision_macro = precision_score(y_true=actual, y_pred=predictions, average='macro', zero_division=0)
+
+    # recall_micro = recall_score(y_true=actual, y_pred=predictions, average='micro', zero_division=0)
+    # recall_macro = recall_score(y_true=actual, y_pred=predictions, average='macro', zero_division=0)
+    # # PRINT METRICS
+    # print(f"Accuracy: {accuracy}")
+    # print(f"Precision (Micro): {precision_micro}")
+    # print(f"Recall (Micro): {recall_micro}")
+    # print(f"Precision (Macro): {precision_macro}")
+    # print(f"Recall (Macro): {recall_macro}")
+    classreport = classification_report(y_true=actual, y_pred=predictions)
+    print(classreport)
+
 
     # 0) Plot new point
     # 1) Implement threshold for amount of new points to create cluster and threshold for single point radius to check for points inside to know if it is within the same cluster
     # 2) Is new point already in a cluster (d <= r -> calcInOut())
-    # 3) Save model with new point added to glob.out_points[]
+    # 3) Save model with new point added to globalvars.out_points[]
 
-    plotData(centroids, clusters, len(centroids), points)  # Visualize the clusters
+    # plotData(centroids, len(centroids), points)  # Visualize the clusters
+    print("STATUS REPORT:")
+    print(f"Number of centroids: {len(centroids)}")
+
+    for idx, c in enumerate(centroids):
+        print(f"Centroid {idx+1}: {c.label}")
+        print(f"Radius: {c.radius}")
+        print(f"Points: {c.xy}\n")
+        for idx2, c2 in enumerate(centroids):
+            if idx != idx2:
+                distance = findSingleDistance(c, c2)
+                print(f"Distance between {c.label} and {c2.label} is {distance}. They have a combined radius of: {c.radius + c2.radius}")
 
 
 if __name__ == "__main__":
+    profiler = Profiler()
+    profiler.start()
     main()
+    profiler.stop()
+    profiler.print()
