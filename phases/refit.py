@@ -10,6 +10,7 @@ newClusterPointThreshold = 5
 outpointsfails = 0
 
 
+
 def CheckIfOutpointsContainsInPoints(centroids):
     global outpointsfails
     globalvars.out_points = globalvars.out_points[::-1]
@@ -45,17 +46,27 @@ def Recalibrate(_centroids):
     return centroids
 
 
+
 def find_most_centered(close_points):
     """
     Finds the most centered point among the given close points.
+    """
+    Finds the most centered point among the given close points.
 
+    Args:
+        close_points: A list of 5 close points.
     Args:
         close_points: A list of 5 close points.
 
     Returns:
         The most centered point.
     """
+    Returns:
+        The most centered point.
+    """
 
+    # Calculate center of mass (excluding current point)
+    center_of_mass = np.mean(close_points[:-1], axis=0)
     # Calculate center of mass (excluding current point)
     center_of_mass = np.mean(close_points[:-1], axis=0)
 
@@ -69,6 +80,7 @@ def find_most_centered(close_points):
     # Find the point with minimum distance
     index = np.argmin(distances)
     return index
+
 
 
 def newClusterCreated():
@@ -154,9 +166,11 @@ def Refit(_centroids, new_point=None):
     while CheckIfOutpointsContainsInPoints(centroids):
         centroids = Recalibrate(centroids)
 
+
     # If a new cluster is created from multiple close outpoints, rerun Refit
     if len(globalvars.out_points) >= newClusterPointThreshold:
         newClusterWasCreated, newCluster = newClusterCreated()
+        if newClusterWasCreated:
         if newClusterWasCreated:
             # Add new clustercenter to centroids array
             centroids.append(newCluster)

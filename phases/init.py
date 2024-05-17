@@ -138,6 +138,7 @@ def findK(points):
     return len(foundKs)
 
 
+
 def initSetup(points, k):
     centroids, clusters = kmeans(points, k, [], [])
     print(k)
@@ -149,6 +150,7 @@ def initSetup(points, k):
             globalvars.out_points.append(point)
 
     return centroids, clusters
+
 
 
 def Initialize(points):

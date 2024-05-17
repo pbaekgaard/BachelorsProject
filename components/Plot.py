@@ -20,7 +20,7 @@ def plotData(centroids, k, points):
     #     ax.scatter(point.xy[0], point.xy[1], point.xy[2], s=30, color=unassigned_color)
     #     ax.text(point.xy[0], point.xy[1], point.xy[2], f" {point.isIn}", color=unassigned_color)
 
-    for i in range(k):
+    for i in range(len(centroids)):
         # Collect points assigned to the current cluster
         # cluster_points = [points[j] for j in range(len(points)) if clusters[j] == i]
 
@@ -40,6 +40,7 @@ def plotData(centroids, k, points):
             marker="o",
             edgecolor="k",
             linewidths=2,
+            label=f"Cluster {i+1} - {centroids[i].label}",
         )
 
         # Plot sphere around the centroid
@@ -53,5 +54,6 @@ def plotData(centroids, k, points):
     ax.set_xlabel("X Coordinate")
     ax.set_ylabel("Y Coordinate")
     ax.set_zlabel("Z Coordinate")
-    ax.legend([f"Cluster {i+1} - {centroids[i].label}" for i in range(k)])
+    # ax.legend([f"Cluster {i+1} - {centroids[i].label}" for i in range(len(centroids))])
+    ax.legend()
     plt.show()
