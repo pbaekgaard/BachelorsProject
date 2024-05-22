@@ -64,17 +64,14 @@ def Transform(data_sequences):
     data = []
     for idx, dataSeq in enumerate(data_sequences):
         print(f"Transforming sequence {idx+1}/{len(data_sequences)}")
-
-        mean = np.mean(dataSeq.T, axis=0)
+        dataSeq = dataSeq.T[::20].T
+        dataSeq = dataSeq[0:3]
         std = np.std(dataSeq.T, axis=0)
         skewness = pd.DataFrame(dataSeq.T).skew()
         kurtosis = pd.DataFrame(dataSeq.T).kurtosis()
-        cross_corr_matrix = calculate_cross_correlation(dataSeq[0:3], dataSeq[3:6])
-        rms = calculate_rms(dataSeq)
-        zero_crossing_rate = calculate_zero_crossing_rate(dataSeq)
             
         # print(f"Mean: {mean}\n Std: {std}\n Skewness: {skewness}\n Kurtosis: {kurtosis}")
-        feature_matrix = np.column_stack((mean, std, skewness, kurtosis, cross_corr_matrix.flatten()[:6],cross_corr_matrix.flatten()[3:9], rms, zero_crossing_rate))
+        feature_matrix = np.column_stack((std, skewness, kurtosis))
         data.append(feature_matrix.T.flatten())
     print("Transformation complete!")
     return data

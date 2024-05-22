@@ -8,10 +8,12 @@ from components.Objects import Point
 from components.Plot import plotData
 from components.Makedataframes import make_dataframes
 from components.InitData import InitData
-from phases.initfit import InitFit
 import globalvars
-from sklearn.metrics import classification_report, precision_score, recall_score, accuracy_score
+# from sklearn.metrics import accuracy_score, precision_score, recall_score
+from sklearn.metrics import classification_report
 from components.Distance import findSingleDistance
+from memory_profiler import profile
+from pyinstrument import Profiler
 WINDOW_SIZE = 1500
 
 
@@ -26,10 +28,10 @@ def loadModel():
 
     return _centroids, _points
 
-
+@profile
 def main():
     globalvars.init()
-    refit = False
+    refit = True
     if not os.path.exists("model_data.pkl"):
         points,labels = InitData("ProcessedData", WINDOW_SIZE, training=True)
         centroids = Initialize(points)
@@ -44,8 +46,11 @@ def main():
             for idx2, c2 in enumerate(centroids):
                 if idx != idx2:
                     distance = findSingleDistance(c, c2)
-                    if distance < c.radius + c2.radius:
+                    # print(f"Distance in main: {distance}")
+                    if distance < (c.radius + c2.radius):
                         print(f"Distance between {c.label} and {c2.label} is {distance} which is smaller than {c.radius + c2.radius}")
+                        print(f"Point {c.label} has point: {c.xy}")
+                        print(f"Point {c2.label} has point: {c2.xy}")
 
 
     else:
@@ -57,13 +62,52 @@ def main():
         if(refit):
             for currPoint in newPoints:
                 centroids = Refit(_centroids=centroids, new_point=currPoint)
-     
-
+        
 
         # print(len(globalvars.out_points))
         # print(f"Number of centroids after refit: {len(centroids)}")
         print("Saving...")
         saveModel(centroids, globalvars.out_points)
+
+    testPoints, testLabels = InitData("StupidTestData", WINDOW_SIZE, training=True)
+    predictions = []
+    actual = testLabels
+    for testPoint in testPoints:
+        prediction = Predict(centroids, testPoint)
+        predictions.append(prediction)
+    print(f"Predicted labels: {predictions}")
+    print(f"Actual labels: {actual}")
+    # Calculate precision
+    # precision = precision_score(actual, predictions, average='weighted')
+
+    # # Calculate accuracy
+    # accuracy = accuracy_score(actual, predictions)
+    # # Calculate precision
+    # precision_micro = precision_score(actual, predictions, average='micro')
+    # precision_macro = precision_score(actual, predictions, average='macro')
+
+    # # Calculate recall
+    # recall_micro = recall_score(actual, predictions, average='micro')
+    # recall_macro = recall_score(actual, predictions, average='macro')
+    # accuracy = accuracy_score(y_true=actual, y_pred=predictions, normalize=True)
+
+    # precision_micro = precision_score(y_true=actual, y_pred=predictions, average='micro', zero_division=0)
+    # precision_macro = precision_score(y_true=actual, y_pred=predictions, average='macro', zero_division=0)
+
+    # recall_micro = recall_score(y_true=actual, y_pred=predictions, average='micro', zero_division=0)
+    # recall_macro = recall_score(y_true=actual, y_pred=predictions, average='macro', zero_division=0)
+    # # PRINT METRIC
+    # print(f"Accuracy: {accuracy}")
+    # print(f"Precision (Micro): {precision_micro}")
+    # print(f"Recall (Micro): {recall_micro}")
+    # print(f"Precision (Macro): {precision_macro}")
+    # print(f"Recall (Macro): {recall_macro}")
+
+    classreportnomicro = classification_report(y_true=actual, y_pred=predictions)
+    classreport = classification_report(y_true=actual, y_pred=predictions, labels=["A", "B", "C"])
+    print(f"{classreportnomicro}\n\n\n\n")
+    print(classreport)
+
 
     # 0) Plot new point
     # 1) Implement threshold for amount of new points to create cluster and threshold for single point radius to check for points inside to know if it is within the same cluster
@@ -73,22 +117,20 @@ def main():
     # plotData(centroids, len(centroids), points)  # Visualize the clusters
     print("STATUS REPORT:")
     print(f"Number of centroids: {len(centroids)}")
-    testPoints, testLabels = InitData("StupidTestData", WINDOW_SIZE, training=True)
-    actual = testLabels
-    actual = np.concatenate((actual, np.array(["unknown"])))
-    predictions = []
-    for point in testPoints:
-        prediction = Predict(centroids, point)
-        predictions.append(prediction)
-    predictions.append("unknown")
-    classreportnomicro = classification_report(y_pred=predictions, y_true=actual)
-    classreport = classification_report(y_pred=predictions, y_true=actual, labels=["A", "B", "unknown"])
-    print(classreportnomicro)
-    print(classreport)
+
     for idx, c in enumerate(centroids):
         print(f"Centroid {idx+1}: {c.label}")
-        print(f"Radius: {c.radius}\n")
+        print(f"Radius: {c.radius}")
+        print(f"Points: {c.xy}\n")
+        for idx2, c2 in enumerate(centroids):
+            if idx != idx2:
+                distance = findSingleDistance(c, c2)
+                print(f"Distance between {c.label} and {c2.label} is {distance}. They have a combined radius of: {c.radius + c2.radius}")
 
 
 if __name__ == "__main__":
+    profiler = Profiler()
+    profiler.start()
     main()
+    profiler.stop()
+    profiler.print()
